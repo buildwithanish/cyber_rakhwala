@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Cyber Rakhwala Full Stack
 
 This repository is now organized as a production-style full-stack workspace:
@@ -98,3 +99,6 @@ API docs: `http://localhost:5000/docs`
 ## Security Reminder
 
 - Rotate any MongoDB password, JWT secret, or admin password that was pasted into a chat, screenshot, or shared note before going live.
+=======
+# cyber_rakhwala
+>>>>>>> 0f1aba1f4905bef8e324019c3f5bb568ae4bb0da
