@@ -190,6 +190,10 @@ const RechargeCredits = () => {
       } else if (orderData.checkoutUrl) {
         window.location.assign(orderData.checkoutUrl);
         return;
+      } else if (orderData.nextAction === 'manual_review_required') {
+        throw new Error(
+          'Online payments are not configured for this environment yet. Please use a configured payment gateway or contact the administrator.'
+        );
       } else {
         await paymentService.verifyOrder({
           orderId: orderData.orderId,

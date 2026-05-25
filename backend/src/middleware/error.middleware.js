@@ -17,6 +17,18 @@ export const errorHandler = (error, req, res, _next) => {
     details = error.flatten();
   }
 
+  if (error?.name === 'TokenExpiredError') {
+    statusCode = StatusCodes.UNAUTHORIZED;
+    message = 'Session expired';
+    code = 'TOKEN_EXPIRED';
+  }
+
+  if (error?.name === 'JsonWebTokenError') {
+    statusCode = StatusCodes.UNAUTHORIZED;
+    message = 'Authentication token is invalid';
+    code = 'INVALID_TOKEN';
+  }
+
   logger.error(
     {
       err: error,

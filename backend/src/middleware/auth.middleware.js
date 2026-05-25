@@ -23,10 +23,24 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
     });
   }
 
-  const payload = jwt.verify(token, env.jwt.accessSecret, {
-    issuer: env.jwt.issuer,
-    audience: env.jwt.audience
-  });
+  let payload;
+
+  try {
+    payload = jwt.verify(token, env.jwt.accessSecret, {
+      issuer: env.jwt.issuer,
+      audience: env.jwt.audience
+    });
+  } catch (error) {
+    if (error?.name === 'TokenExpiredError') {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Session expired', {
+        code: 'TOKEN_EXPIRED'
+      });
+    }
+
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Authentication token is invalid', {
+      code: 'INVALID_TOKEN'
+    });
+  }
 
   const user = await User.findById(payload.sub);
   if (!user || !user.isActive) {
