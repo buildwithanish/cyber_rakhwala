@@ -22,6 +22,75 @@
     <!-- DNS Prefetch -->
     <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://challenges.cloudflare.com">
+    <script>
+      (function () {
+        if (typeof window === 'undefined') return;
+
+        var originalMatchMedia =
+          typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : null;
+
+        function createStub(query) {
+          var listeners = [];
+          var mediaQueryList = {
+            media: query,
+            matches: false,
+            onchange: null,
+            addListener: function (listener) {
+              if (typeof listener === 'function') listeners.push(listener);
+            },
+            removeListener: function (listener) {
+              listeners = listeners.filter(function (item) {
+                return item !== listener;
+              });
+            },
+            addEventListener: function (event, listener) {
+              if (event === 'change' && typeof listener === 'function') listeners.push(listener);
+            },
+            removeEventListener: function (event, listener) {
+              if (event === 'change') {
+                listeners = listeners.filter(function (item) {
+                  return item !== listener;
+                });
+              }
+            },
+            dispatchEvent: function (event) {
+              listeners.forEach(function (listener) {
+                listener(event);
+              });
+              if (typeof mediaQueryList.onchange === 'function') {
+                mediaQueryList.onchange(event);
+              }
+              return true;
+            }
+          };
+
+          return mediaQueryList;
+        }
+
+        window.matchMedia = function (query) {
+          var result = originalMatchMedia ? originalMatchMedia(query) : null;
+          var mediaQueryList = result || createStub(query);
+
+          if (typeof mediaQueryList.addListener !== 'function') {
+            mediaQueryList.addListener = function (listener) {
+              if (typeof mediaQueryList.addEventListener === 'function') {
+                mediaQueryList.addEventListener('change', listener);
+              }
+            };
+          }
+
+          if (typeof mediaQueryList.removeListener !== 'function') {
+            mediaQueryList.removeListener = function (listener) {
+              if (typeof mediaQueryList.removeEventListener === 'function') {
+                mediaQueryList.removeEventListener('change', listener);
+              }
+            };
+          }
+
+          return mediaQueryList;
+        };
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
