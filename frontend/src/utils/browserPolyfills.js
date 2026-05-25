@@ -75,8 +75,16 @@ const ensureMatchMedia = () => {
     return;
   }
 
+  const existingSafeMatchMedia =
+    typeof window.__cyberSafeMatchMedia === 'function' ? window.__cyberSafeMatchMedia : null;
+  const descriptor = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+
   const originalMatchMedia =
-    typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : null;
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia.bind(window)
+      : existingSafeMatchMedia
+        ? existingSafeMatchMedia.bind(window)
+        : null;
 
   const safeMatchMedia = (query) => {
     try {
@@ -89,6 +97,16 @@ const ensureMatchMedia = () => {
 
   const lockProperty = (target, key, value) => {
     if (!target) return;
+
+    const currentDescriptor = Object.getOwnPropertyDescriptor(target, key);
+    if (
+      currentDescriptor &&
+      currentDescriptor.configurable === false &&
+      currentDescriptor.writable === false
+    ) {
+      return;
+    }
+
     try {
       Object.defineProperty(target, key, {
         configurable: false,
@@ -100,6 +118,15 @@ const ensureMatchMedia = () => {
       target[key] = value;
     }
   };
+
+  if (
+    descriptor &&
+    descriptor.configurable === false &&
+    descriptor.writable === false &&
+    existingSafeMatchMedia
+  ) {
+    return;
+  }
 
   lockProperty(window, 'matchMedia', safeMatchMedia);
   lockProperty(window, '__cyberSafeMatchMedia', safeMatchMedia);
