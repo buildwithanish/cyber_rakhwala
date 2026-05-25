@@ -9,7 +9,7 @@ import {
   isCaptchaEnabled,
   shouldRenderCaptchaWidget
 } from '../../utils/captcha';
-import { getDashboardPath, isDemoAuthEnabled } from '../../utils/appRoutes';
+import { ADMIN_LOGIN_PATH, getDashboardPath, isDemoAuthEnabled } from '../../utils/appRoutes';
 import { 
   Eye, 
   EyeOff, 
@@ -53,6 +53,17 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await login(email, password, captchaToken);
+    if (!result.success && result.code === 'ADMIN_ROUTE_REQUIRED') {
+      navigate(ADMIN_LOGIN_PATH, {
+        replace: true,
+        state: {
+          email,
+          reason: 'protected-admin-route'
+        }
+      });
+      return;
+    }
+
     if (result.success) {
       navigate(getDashboardPath(result.user?.role || user?.role));
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -9,12 +9,19 @@ import { ADMIN_CONSOLE_ROLES, ADMIN_DASHBOARD_PATH } from '../../utils/appRoutes
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, user, updateUser, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (location.state?.email) {
+      setEmail(location.state.email);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (isAuthenticated && ADMIN_CONSOLE_ROLES.includes(user?.role)) {
@@ -101,6 +108,15 @@ const AdminLogin = () => {
                 <span>
                   You are currently signed in as `{user.email}` with role `{user.role}`. Continuing here
                   will switch this browser session to the admin/staff account you enter below.
+                </span>
+              </div>
+            ) : null}
+
+            {location.state?.reason === 'protected-admin-route' ? (
+              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 text-sm text-cyan-200">
+                <Shield className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <span>
+                  This account must use the protected admin access route. Continue signing in below.
                 </span>
               </div>
             ) : null}

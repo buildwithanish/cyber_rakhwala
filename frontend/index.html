@@ -29,11 +29,14 @@
         var originalMatchMedia =
           typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : null;
 
-        function createStub(query) {
+        function createSafeMediaQueryList(query, nativeResult) {
           var listeners = [];
           var mediaQueryList = {
-            media: query,
-            matches: false,
+            media:
+              nativeResult && typeof nativeResult.media === 'string' && nativeResult.media.trim()
+                ? nativeResult.media
+                : String(query || ''),
+            matches: Boolean(nativeResult && nativeResult.matches),
             onchange: null,
             addListener: function (listener) {
               if (typeof listener === 'function') listeners.push(listener);
@@ -64,31 +67,66 @@
             }
           };
 
+          if (nativeResult && typeof nativeResult.addEventListener === 'function') {
+            mediaQueryList.addListener = function (listener) {
+              if (typeof listener === 'function') {
+                nativeResult.addEventListener('change', listener);
+              }
+            };
+            mediaQueryList.removeListener = function (listener) {
+              if (typeof listener === 'function' && typeof nativeResult.removeEventListener === 'function') {
+                nativeResult.removeEventListener('change', listener);
+              }
+            };
+          } else if (nativeResult && typeof nativeResult.addListener === 'function') {
+            mediaQueryList.addListener = function (listener) {
+              if (typeof listener === 'function') {
+                nativeResult.addListener(listener);
+              }
+            };
+            mediaQueryList.removeListener = function (listener) {
+              if (typeof listener === 'function' && typeof nativeResult.removeListener === 'function') {
+                nativeResult.removeListener(listener);
+              }
+            };
+          }
+
           return mediaQueryList;
         }
 
-        window.matchMedia = function (query) {
-          var result = originalMatchMedia ? originalMatchMedia(query) : null;
-          var mediaQueryList = result || createStub(query);
-
-          if (typeof mediaQueryList.addListener !== 'function') {
-            mediaQueryList.addListener = function (listener) {
-              if (typeof mediaQueryList.addEventListener === 'function') {
-                mediaQueryList.addEventListener('change', listener);
-              }
-            };
+        var safeMatchMedia = function (query) {
+          try {
+            var result = originalMatchMedia ? originalMatchMedia(query) : null;
+            return createSafeMediaQueryList(query, result);
+          } catch (error) {
+            return createSafeMediaQueryList(query, null);
           }
-
-          if (typeof mediaQueryList.removeListener !== 'function') {
-            mediaQueryList.removeListener = function (listener) {
-              if (typeof mediaQueryList.removeEventListener === 'function') {
-                mediaQueryList.removeEventListener('change', listener);
-              }
-            };
-          }
-
-          return mediaQueryList;
         };
+
+        Object.defineProperty(window, 'matchMedia', {
+          configurable: true,
+          enumerable: true,
+          writable: true,
+          value: safeMatchMedia
+        });
+
+        if (typeof globalThis !== 'undefined') {
+          globalThis.matchMedia = safeMatchMedia;
+        }
+
+        if (typeof window.MediaQueryList !== 'undefined' && window.MediaQueryList.prototype) {
+          if (typeof window.MediaQueryList.prototype.addListener !== 'function') {
+            window.MediaQueryList.prototype.addListener = function (listener) {
+              return this.addEventListener && this.addEventListener('change', listener);
+            };
+          }
+
+          if (typeof window.MediaQueryList.prototype.removeListener !== 'function') {
+            window.MediaQueryList.prototype.removeListener = function (listener) {
+              return this.removeEventListener && this.removeEventListener('change', listener);
+            };
+          }
+        }
       })();
     </script>
     <script>

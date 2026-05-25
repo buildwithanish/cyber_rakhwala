@@ -65,6 +65,7 @@ const ChatbotBubble = ({ userName = 'User', position = 'right' }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [inputError, setInputError] = useState('');
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -111,14 +112,23 @@ const ChatbotBubble = ({ userName = 'User', position = 'right' }) => {
   }, []);
 
   const handleSendMessage = async (messageText = inputValue) => {
-    if (!messageText.trim() || isTyping) {
+    const normalizedMessage = String(messageText ?? '').trim();
+
+    if (isTyping) {
       return;
     }
+
+    if (!normalizedMessage) {
+      setInputError('Please enter a message before sending.');
+      return;
+    }
+
+    setInputError('');
 
     const userMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: messageText.trim(),
+      content: normalizedMessage,
       timestamp: new Date()
     };
 
@@ -128,7 +138,7 @@ const ChatbotBubble = ({ userName = 'User', position = 'right' }) => {
 
     try {
       const response = await publicService.sendChatMessage({
-        message: messageText.trim(),
+        message: normalizedMessage,
         conversationId
       });
       const nextConversationId = response?.conversationId || conversationId;
@@ -145,7 +155,7 @@ const ChatbotBubble = ({ userName = 'User', position = 'right' }) => {
           role: 'assistant',
           content: response?.reply || 'I could not generate a response for that request.',
           timestamp: new Date(),
-          suggestions: buildSuggestions(messageText.trim())
+          suggestions: buildSuggestions(normalizedMessage)
         }
       ]);
     } catch (error) {
@@ -395,7 +405,12 @@ const ChatbotBubble = ({ userName = 'User', position = 'right' }) => {
                       <textarea
                         ref={inputRef}
                         value={inputValue}
-                        onChange={(event) => setInputValue(event.target.value)}
+                        onChange={(event) => {
+                          setInputValue(event.target.value);
+                          if (inputError) {
+                            setInputError('');
+                          }
+                        }}
                         onKeyDown={handleKeyDown}
                         placeholder="Type your message..."
                         rows={1}
@@ -411,6 +426,9 @@ const ChatbotBubble = ({ userName = 'User', position = 'right' }) => {
                       </button>
                     </div>
                   </div>
+                  {inputError ? (
+                    <p className="mt-2 text-center text-[11px] text-amber-300">{inputError}</p>
+                  ) : null}
                   <p className="mt-2 text-center text-[9px] text-gray-500">
                     <Sparkles className="mr-1 inline h-3 w-3" />
                     AI-powered assistant | Press Enter to send

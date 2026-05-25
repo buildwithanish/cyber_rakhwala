@@ -132,7 +132,12 @@ export const AuthProvider = ({ children }) => {
         return { success: true, user: userData };
       } catch (error) {
         setAuthError(error.message || 'Login failed');
-        return { success: false, error: error.message };
+        return {
+          success: false,
+          error: error.message,
+          code: error?.data?.code || null,
+          details: error?.data || null
+        };
       } finally {
         setIsLoading(false);
       }

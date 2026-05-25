@@ -46,6 +46,7 @@ const FeedbackBubble = ({
   const [submitStatus, setSubmitStatus] = useState(null);
   const [ticketId, setTicketId] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [validationMessage, setValidationMessage] = useState('');
 
   const positionClasses = position === 'left' ? 'bottom-24 left-6' : 'bottom-24 right-6';
 
@@ -57,6 +58,7 @@ const FeedbackBubble = ({
     setSubmitStatus(null);
     setTicketId('');
     setErrorMessage('');
+    setValidationMessage('');
   };
 
   const handleClose = () => {
@@ -67,19 +69,28 @@ const FeedbackBubble = ({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!feedbackType || !rating || !message.trim()) {
+    const normalizedMessage = message.trim();
+
+    if (!feedbackType || !rating || !normalizedMessage) {
+      setValidationMessage('Please choose a type, rating, and feedback message.');
+      return;
+    }
+
+    if (normalizedMessage.length < 5) {
+      setValidationMessage('Feedback message must be at least 5 characters long.');
       return;
     }
 
     setIsSubmitting(true);
     setSubmitStatus(null);
     setErrorMessage('');
+    setValidationMessage('');
 
     try {
       const response = await publicService.submitFeedback({
         type: feedbackType,
         rating,
-        message: message.trim(),
+        message: normalizedMessage,
         email: email.trim() || undefined,
         page: currentPage,
         metadata: {
@@ -95,7 +106,11 @@ const FeedbackBubble = ({
       setSubmitStatus('success');
     } catch (error) {
       setSubmitStatus('error');
-      setErrorMessage(error.message || 'Something went wrong while sending your feedback.');
+      setErrorMessage(
+        error?.data?.details?.fieldErrors?.body?.[0] ||
+          error.message ||
+          'Something went wrong while sending your feedback.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -276,12 +291,20 @@ const FeedbackBubble = ({
                       </label>
                       <textarea
                         value={message}
-                        onChange={(event) => setMessage(event.target.value)}
+                        onChange={(event) => {
+                          setMessage(event.target.value);
+                          if (validationMessage) {
+                            setValidationMessage('');
+                          }
+                        }}
                         placeholder="Describe your feedback in detail..."
                         rows={4}
                         required
                         className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition-all placeholder-gray-500 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20"
                       />
+                      {validationMessage ? (
+                        <p className="mt-2 text-xs text-amber-300">{validationMessage}</p>
+                      ) : null}
                     </div>
 
                     <div>

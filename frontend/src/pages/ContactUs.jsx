@@ -37,18 +37,46 @@ const ContactUs = () => {
   const [submitted, setSubmitted] = useState(false);
   const [ticketNumber, setTicketNumber] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const normalizedMessage = formData.message.trim();
+    const normalizedSubject = formData.subject.trim();
+
+    if (formData.name.trim().length < 2) {
+      setValidationError('Name must be at least 2 characters long.');
+      return;
+    }
+
+    if (normalizedSubject.length < 3) {
+      setValidationError('Subject must be at least 3 characters long.');
+      return;
+    }
+
+    if (normalizedMessage.length < 10) {
+      setValidationError('Message must be at least 10 characters long.');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError('');
+    setValidationError('');
 
     try {
-      const response = await publicService.submitContact(formData);
+      const response = await publicService.submitContact({
+        ...formData,
+        subject: normalizedSubject,
+        message: normalizedMessage
+      });
       setTicketNumber(response?.ticketNumber || '');
       setSubmitted(true);
     } catch (error) {
-      setSubmitError(error.message || 'Unable to submit your message right now.');
+      setSubmitError(
+        error?.data?.details?.fieldErrors?.body?.[0] ||
+          error.message ||
+          'Unable to submit your message right now.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -59,6 +87,9 @@ const ContactUs = () => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+    if (validationError) {
+      setValidationError('');
+    }
   };
 
   const contactInfo = [
@@ -168,6 +199,11 @@ const ContactUs = () => {
                     {submitError}
                   </div>
                 ) : null}
+                {validationError ? (
+                  <div className="mb-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                    {validationError}
+                  </div>
+                ) : null}
                 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-6">
@@ -217,6 +253,7 @@ const ContactUs = () => {
                       value={formData.message}
                       onChange={handleChange}
                       required
+                      minLength={10}
                       rows={5}
                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-cyan-500 focus:outline-none transition-colors resize-none"
                       placeholder="Tell us more about your inquiry..."
