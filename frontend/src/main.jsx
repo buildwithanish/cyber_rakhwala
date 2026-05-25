@@ -4,6 +4,7 @@ import App from './App';
 import './index.css';
 
 // Initialize utilities
+import './utils/browserPolyfills';
 import './utils/pwa';
 import './utils/performance';
 import './utils/keyboardShortcuts';
