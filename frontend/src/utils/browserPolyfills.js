@@ -87,15 +87,29 @@ const ensureMatchMedia = () => {
     }
   };
 
-  Object.defineProperty(window, 'matchMedia', {
-    configurable: true,
-    enumerable: true,
-    writable: true,
-    value: safeMatchMedia
-  });
+  const lockProperty = (target, key, value) => {
+    if (!target) return;
+    try {
+      Object.defineProperty(target, key, {
+        configurable: false,
+        enumerable: true,
+        writable: false,
+        value
+      });
+    } catch {
+      target[key] = value;
+    }
+  };
+
+  lockProperty(window, 'matchMedia', safeMatchMedia);
+  lockProperty(window, '__cyberSafeMatchMedia', safeMatchMedia);
 
   if (typeof globalThis !== 'undefined') {
-    globalThis.matchMedia = safeMatchMedia;
+    lockProperty(globalThis, 'matchMedia', safeMatchMedia);
+  }
+
+  if (typeof self !== 'undefined') {
+    lockProperty(self, 'matchMedia', safeMatchMedia);
   }
 
   if (typeof window.MediaQueryList !== 'undefined') {

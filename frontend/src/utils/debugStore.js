@@ -11,6 +11,20 @@ const state = {
 const isEnabled = () =>
   import.meta.env.DEV || import.meta.env.VITE_DEBUG_PANEL === 'true';
 
+const shouldIgnoreFrontendError = (error, context = {}) => {
+  const message = String(error?.message || '');
+  const source = String(context?.source || '');
+
+  if (
+    message.includes("reading 'addListener'") &&
+    (source.startsWith(`blob:${window.location.origin}`) || source.startsWith('blob:https://'))
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 const pushLimited = (collection, entry) => {
   collection.unshift(entry);
   if (collection.length > MAX_ENTRIES) {
@@ -25,6 +39,7 @@ const notify = () => {
 
 export const recordFrontendError = (error, context = {}) => {
   if (!isEnabled()) return;
+  if (shouldIgnoreFrontendError(error, context)) return;
 
   pushLimited(state.frontendErrors, {
     id: `fe-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
