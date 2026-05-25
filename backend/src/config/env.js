@@ -34,11 +34,19 @@ const parsePathSegment = (value, fallback) => {
   return normalized || fallback;
 };
 
+const normalizeOrigin = (value, fallback = '') => {
+  const normalized = String(value || fallback)
+    .trim()
+    .replace(/\/+$/g, '');
+
+  return normalized;
+};
+
 const getCorsOrigins = () => {
   const raw = process.env.FRONTEND_URL ?? 'http://localhost:3000';
   return raw
     .split(',')
-    .map((value) => value.trim())
+    .map((value) => normalizeOrigin(value))
     .filter(Boolean);
 };
 
@@ -46,9 +54,12 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: parseNumber(process.env.PORT, 5000),
   appName: process.env.APP_NAME ?? 'Cyber Rakhwala API',
-  appUrl: process.env.APP_URL ?? 'http://localhost:5000',
-  openApiServerUrl: process.env.OPENAPI_SERVER_URL ?? process.env.APP_URL ?? 'http://localhost:5000',
-  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+  appUrl: normalizeOrigin(process.env.APP_URL, 'http://localhost:5000'),
+  openApiServerUrl: normalizeOrigin(
+    process.env.OPENAPI_SERVER_URL ?? process.env.APP_URL,
+    'http://localhost:5000'
+  ),
+  frontendUrl: normalizeOrigin(process.env.FRONTEND_URL, 'http://localhost:3000'),
   corsOrigins: getCorsOrigins(),
   dnsServers: parseList(process.env.DNS_SERVERS, ['1.1.1.1', '8.8.8.8']),
   debugPanelEnabled: parseBoolean(process.env.DEBUG_PANEL_ENABLED, process.env.NODE_ENV !== 'production'),
