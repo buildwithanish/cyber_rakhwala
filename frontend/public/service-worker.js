@@ -46,6 +46,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            return response;
+          }
+
+          return caches.match('/index.html').then((cachedIndex) => cachedIndex || response);
+        })
+        .catch(() =>
+          caches.match('/index.html').then(
+            (cachedIndex) => cachedIndex || caches.match('/')
+          )
+        )
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) {

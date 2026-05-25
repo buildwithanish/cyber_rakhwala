@@ -7,6 +7,9 @@
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '';
 const CF_ANALYTICS_TOKEN = import.meta.env.VITE_CLOUDFLARE_ANALYTICS_TOKEN || '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const CF_ANALYTICS_ENABLED =
+  import.meta.env.VITE_ENABLE_ANALYTICS === 'true' && Boolean(CF_ANALYTICS_TOKEN);
 
 // ============== CLOUDFLARE TURNSTILE (CAPTCHA) ==============
 
@@ -118,8 +121,7 @@ export const getTurnstileResponse = async (widgetId) => {
  * Initialize Cloudflare Web Analytics
  */
 export const initCloudflareAnalytics = () => {
-  if (!CF_ANALYTICS_TOKEN) {
-    console.warn('Cloudflare Analytics token not configured');
+  if (!CF_ANALYTICS_ENABLED) {
     return;
   }
 
@@ -164,7 +166,7 @@ export const getCloudflareRayId = (response) => {
  */
 export const verifyTurnstileToken = async (token) => {
   try {
-    const response = await fetch('/api/verify-turnstile', {
+    const response = await fetch(`${API_BASE_URL}/verify-turnstile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

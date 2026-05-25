@@ -3,6 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import CaptchaWidget from '../../components/common/CaptchaWidget';
+import {
+  getCaptchaProvider,
+  isCaptchaConfigured,
+  isCaptchaEnabled,
+  shouldRenderCaptchaWidget
+} from '../../utils/captcha';
 import { getDashboardPath, isDemoAuthEnabled } from '../../utils/appRoutes';
 import { 
   Eye, 
@@ -29,6 +35,10 @@ const Login = () => {
   const [focusedField, setFocusedField] = useState(null);
   const [captchaToken, setCaptchaToken] = useState(null);
   const [captchaError, setCaptchaError] = useState(false);
+  const captchaEnabled = isCaptchaEnabled();
+  const captchaConfigured = isCaptchaConfigured();
+  const showCaptchaWidget = captchaEnabled && shouldRenderCaptchaWidget();
+  const captchaProvider = getCaptchaProvider();
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -42,11 +52,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Check CAPTCHA token (optional - can be disabled if not configured)
-    if (!captchaToken && import.meta.env.VITE_CAPTCHA_PROVIDER) {
-      setCaptchaError(true);
-      return;
-    }
     const result = await login(email, password, captchaToken);
     if (result.success) {
       navigate(getDashboardPath(result.user?.role || user?.role));
@@ -250,20 +255,34 @@ const Login = () => {
             </div>
 
             {/* CAPTCHA Widget */}
-            <div className="flex justify-center">
-              <CaptchaWidget
-                onVerify={handleCaptchaVerify}
-                onError={handleCaptchaError}
-                onExpired={handleCaptchaExpired}
-                theme="dark"
-                showStatus={false}
-              />
-            </div>
+            {showCaptchaWidget ? (
+              <div className="flex justify-center">
+                <CaptchaWidget
+                  onVerify={handleCaptchaVerify}
+                  onError={handleCaptchaError}
+                  onExpired={handleCaptchaExpired}
+                  theme="dark"
+                  showStatus={false}
+                />
+              </div>
+            ) : null}
 
             {/* CAPTCHA Error */}
-            {captchaError && (
-              <p className="text-red-400 text-sm text-center">Please complete the CAPTCHA verification</p>
-            )}
+            {captchaEnabled && !captchaConfigured ? (
+              <p className="text-center text-sm text-amber-400">
+                CAPTCHA is not configured for this environment. Sign in will still work.
+              </p>
+            ) : null}
+            {captchaEnabled && captchaConfigured && captchaError ? (
+              <p className="text-center text-sm text-amber-400">
+                CAPTCHA verification is temporarily unavailable. You can still continue signing in.
+              </p>
+            ) : null}
+            {captchaEnabled && captchaProvider === 'recaptcha-v3' ? (
+              <p className="text-center text-xs text-slate-500">
+                Protected by Google reCAPTCHA v3.
+              </p>
+            ) : null}
 
             {/* Submit Button */}
             <motion.button

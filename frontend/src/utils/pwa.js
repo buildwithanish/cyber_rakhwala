@@ -4,6 +4,7 @@
  */
 
 let registration = null;
+const PWA_ENABLED = import.meta.env.VITE_ENABLE_PWA === 'true';
 
 const clearDevelopmentServiceWorkers = async () => {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
@@ -26,6 +27,10 @@ const clearDevelopmentServiceWorkers = async () => {
 };
 
 export const registerServiceWorker = async () => {
+  if (!PWA_ENABLED) {
+    return;
+  }
+
   if ('serviceWorker' in navigator) {
     try {
       registration = await navigator.serviceWorker.register('/service-worker.js', {
@@ -82,11 +87,13 @@ export const checkForUpdates = async () => {
 // Install prompt
 let deferredPrompt = null;
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  console.log('[PWA] Install prompt available');
-});
+if (typeof window !== 'undefined' && PWA_ENABLED) {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log('[PWA] Install prompt available');
+  });
+}
 
 export const showInstallPrompt = async () => {
   if (!deferredPrompt) {
@@ -103,12 +110,20 @@ export const showInstallPrompt = async () => {
 };
 
 export const isPWAInstalled = () => {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-         window.navigator.standalone === true;
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const supportsMatchMedia = typeof window.matchMedia === 'function';
+  const standaloneByMedia = supportsMatchMedia
+    ? Boolean(window.matchMedia('(display-mode: standalone)')?.matches)
+    : false;
+
+  return standaloneByMedia || window.navigator.standalone === true;
 };
 
 // Auto-register on import (disabled in development to prevent module loading issues)
-if (typeof window !== 'undefined' && import.meta.env.PROD) {
+if (typeof window !== 'undefined' && PWA_ENABLED && import.meta.env.PROD) {
   registerServiceWorker();
 } else if (typeof window !== 'undefined' && import.meta.env.DEV) {
   clearDevelopmentServiceWorkers();

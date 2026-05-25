@@ -3,12 +3,48 @@
  * Supports Google reCAPTCHA v2, v3, and Cloudflare Turnstile
  */
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
 const RECAPTCHA_V3_SITE_KEY = import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY || '';
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '';
 
+const normalizeProvider = (value) => {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+
+  if (
+    normalized === 'none' ||
+    normalized === 'turnstile' ||
+    normalized === 'recaptcha-v2' ||
+    normalized === 'recaptcha-v3'
+  ) {
+    return normalized;
+  }
+
+  return 'none';
+};
+
 // Determine which CAPTCHA provider to use
-const CAPTCHA_PROVIDER = import.meta.env.VITE_CAPTCHA_PROVIDER || 'turnstile'; // 'recaptcha-v2', 'recaptcha-v3', 'turnstile'
+const CAPTCHA_PROVIDER = normalizeProvider(import.meta.env.VITE_CAPTCHA_PROVIDER);
+
+export const isCaptchaEnabled = () => CAPTCHA_PROVIDER !== 'none';
+
+export const isCaptchaConfigured = () => {
+  switch (CAPTCHA_PROVIDER) {
+    case 'recaptcha-v2':
+      return Boolean(RECAPTCHA_SITE_KEY);
+    case 'recaptcha-v3':
+      return Boolean(RECAPTCHA_V3_SITE_KEY);
+    case 'turnstile':
+      return Boolean(TURNSTILE_SITE_KEY);
+    default:
+      return false;
+  }
+};
+
+export const shouldRenderCaptchaWidget = () =>
+  CAPTCHA_PROVIDER === 'recaptcha-v2' || CAPTCHA_PROVIDER === 'turnstile';
 
 // ============== GOOGLE reCAPTCHA v2 ==============
 
@@ -240,8 +276,9 @@ export const initCaptcha = async () => {
     case 'recaptcha-v3':
       return loadRecaptchaV3();
     case 'turnstile':
-    default:
       return loadTurnstile();
+    default:
+      return null;
   }
 };
 
@@ -253,8 +290,9 @@ export const renderCaptcha = async (containerId, options = {}) => {
     case 'recaptcha-v2':
       return renderRecaptchaV2(containerId, options);
     case 'turnstile':
-    default:
       return renderTurnstile(containerId, options);
+    default:
+      return null;
   }
 };
 
@@ -276,8 +314,9 @@ export const resetCaptcha = async (widgetId) => {
     case 'recaptcha-v2':
       return resetRecaptchaV2(widgetId);
     case 'turnstile':
-    default:
       return resetTurnstile(widgetId);
+    default:
+      return null;
   }
 };
 
@@ -289,8 +328,9 @@ export const getCaptchaResponse = async (widgetId) => {
     case 'recaptcha-v2':
       return getRecaptchaV2Response(widgetId);
     case 'turnstile':
-    default:
       return getTurnstileResponse(widgetId);
+    default:
+      return null;
   }
 };
 
@@ -299,7 +339,7 @@ export const getCaptchaResponse = async (widgetId) => {
  */
 export const verifyCaptchaToken = async (token) => {
   try {
-    const response = await fetch('/api/verify-captcha', {
+    const response = await fetch(`${API_BASE_URL}/verify-captcha`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

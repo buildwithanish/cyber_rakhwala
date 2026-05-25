@@ -23,12 +23,30 @@ export const ThemeProvider = ({ children }) => {
 
   // Detect system preference
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    if (!mediaQuery) {
+      return undefined;
+    }
+
     setSystemPreference(mediaQuery.matches ? 'dark' : 'light');
 
     const handler = (e) => setSystemPreference(e.matches ? 'dark' : 'light');
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    }
+
+    if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(handler);
+      return () => mediaQuery.removeListener(handler);
+    }
+
+    return undefined;
   }, []);
 
   // Load saved theme on mount

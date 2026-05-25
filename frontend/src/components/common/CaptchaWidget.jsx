@@ -18,7 +18,7 @@ const CaptchaWidget = ({
 }) => {
   const containerRef = useRef(null);
   const [widgetId, setWidgetId] = useState(null);
-  const [status, setStatus] = useState('idle'); // idle, loading, verified, error, expired
+  const [status, setStatus] = useState('idle'); // idle, loading, verified, error, expired, unavailable
   const [provider] = useState(getCaptchaProvider());
 
   const handleSuccess = useCallback((token) => {
@@ -53,9 +53,15 @@ const CaptchaWidget = ({
           onExpired: handleExpired,
         });
 
-        if (mounted && id !== null) {
+        if (!mounted) {
+          return;
+        }
+
+        if (id !== null) {
           setWidgetId(id);
           setStatus('idle');
+        } else {
+          setStatus('unavailable');
         }
       } catch (error) {
         console.error('Failed to initialize CAPTCHA:', error);
@@ -92,6 +98,7 @@ const CaptchaWidget = ({
     verified: { icon: CheckCircle, color: 'text-green-400', text: 'Verified' },
     error: { icon: AlertCircle, color: 'text-red-400', text: 'Verification failed' },
     expired: { icon: RefreshCw, color: 'text-amber-400', text: 'Expired - Please retry' },
+    unavailable: { icon: AlertCircle, color: 'text-amber-400', text: 'Verification temporarily unavailable' },
   };
 
   const currentStatus = statusConfig[status];
