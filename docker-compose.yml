@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: cyber-rakhwala-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: cyber-rakhwala-backend
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/cyber-rakhwala
+      FRONTEND_URL: http://localhost
+      COOKIE_SECURE: "false"
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_ADMIN_LOGIN_PATH: ${ADMIN_PANEL_PATH:-deepaklogin}
+        VITE_ADMIN_API_PATH: ${ADMIN_PANEL_PATH:-deepaklogin}
+        VITE_ENABLE_DEMO_AUTH: ${VITE_ENABLE_DEMO_AUTH:-false}
+    container_name: cyber-rakhwala-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  mongo-data:

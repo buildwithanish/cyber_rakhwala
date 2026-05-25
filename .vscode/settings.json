@@ -1,0 +1,18 @@
+{
+  "css.validate": false,
+  "css.lint.unknownAtRules": "ignore",
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "tailwindCSS.includeLanguages": {
+    "javascript": "javascript",
+    "javascriptreact": "javascript"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    ["className\\s*=\\s*[\"']([^\"']*)[\"']", "([a-zA-Z0-9\\-:]+)"],
+    ["className\\s*=\\s*{`([^`]*)`}", "([a-zA-Z0-9\\-:]+)"]
+  ]
+}
