@@ -17,6 +17,7 @@ import {
   sendPasswordReset,
   updatePassword,
   updateProfile,
+  verifyLoginOtpAndIssueSession,
   verifyEmailAddress,
   verifyOtpCode
 } from '../services/auth.service.js';
@@ -67,6 +68,14 @@ export const login = asyncHandler(async (req, res) => {
     password: req.validated.body.password,
     req
   });
+  if (payload.requiresOtp) {
+    res.success({
+      statusCode: 202,
+      message: payload.message,
+      data: payload
+    });
+    return;
+  }
   sendAuthPayload(res, payload, 'Signed in successfully');
 });
 
@@ -76,6 +85,14 @@ export const adminLogin = asyncHandler(async (req, res) => {
     password: req.validated.body.password,
     req
   });
+  if (payload.requiresOtp) {
+    res.success({
+      statusCode: 202,
+      message: payload.message,
+      data: payload
+    });
+    return;
+  }
   sendAuthPayload(res, payload, 'Admin signed in successfully');
 });
 
@@ -191,6 +208,15 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   res.success({
     message: 'OTP verified successfully'
   });
+});
+
+export const verifyLoginOtp = asyncHandler(async (req, res) => {
+  const payload = await verifyLoginOtpAndIssueSession({
+    email: req.validated.body.email,
+    code: req.validated.body.code,
+    req
+  });
+  sendAuthPayload(res, payload, 'Signed in successfully');
 });
 
 export const getSessions = asyncHandler(async (req, res) => {

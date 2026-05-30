@@ -28,10 +28,12 @@ import {
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loginAsDemo, isLoading, authError, clearError, isAuthenticated, user } = useAuth();
+  const { login, verifyLoginOtp, loginAsDemo, isLoading, authError, clearError, isAuthenticated, user, pendingOtpEmail } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [requiresOtp, setRequiresOtp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [captchaToken, setCaptchaToken] = useState(null);
@@ -55,7 +57,16 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await login(email, password, captchaToken);
+    const result = requiresOtp
+      ? await verifyLoginOtp(email || pendingOtpEmail, otpCode)
+      : await login(email, password, captchaToken);
+
+    if (result.success && result.requiresOtp) {
+      setRequiresOtp(true);
+      setOtpCode('');
+      return;
+    }
+
     if (!result.success && result.code === 'ADMIN_ROUTE_REQUIRED') {
       navigate(ADMIN_LOGIN_PATH, {
         replace: true,
@@ -69,6 +80,14 @@ const Login = () => {
 
     if (result.success) {
       navigate(getDashboardPath(result.user?.role || user?.role));
+    }
+  };
+
+  const handleResendOtp = async () => {
+    const result = await login(email, password, captchaToken);
+    if (result?.requiresOtp) {
+      setRequiresOtp(true);
+      setOtpCode('');
     }
   };
 
@@ -215,6 +234,45 @@ const Login = () => {
             </div>
           ) : null}
 
+          {requiresOtp ? (
+            <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-4 text-sm text-amber-100">
+              <p className="font-semibold text-white">Verification required</p>
+              <p className="mt-1 text-amber-100/90">
+                We sent a 6-digit code to <span className="font-medium">{email || pendingOtpEmail}</span>. Enter it below to complete sign in.
+              </p>
+              <div className="mt-4">
+                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-amber-200/80">OTP Code</label>
+                <input
+                  value={otpCode}
+                  onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="123456"
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-center text-lg tracking-[0.35em] text-white outline-none"
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200"
+                >
+                  Resend code
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRequiresOtp(false);
+                    setOtpCode('');
+                  }}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200"
+                >
+                  Change account
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Field */}
@@ -315,11 +373,11 @@ const Login = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Signing in...
+                  {requiresOtp ? 'Verifying code...' : 'Signing in...'}
                 </>
               ) : (
                 <>
-                  Sign In
+                  {requiresOtp ? 'Verify & Sign In' : 'Sign In'}
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}

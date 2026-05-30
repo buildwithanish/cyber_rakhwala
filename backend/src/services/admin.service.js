@@ -24,6 +24,7 @@ import { buildKeywordQuery, slugify } from '../utils/helpers.js';
 import { buildPaginationMeta, getPagination } from '../utils/pagination.js';
 import { getAnalyticsOverview } from './analytics.service.js';
 import { createAuditLog } from './audit.service.js';
+import { notifyApprovalResult } from './auth.service.js';
 
 const listWithPagination = async ({ model, query, searchFields = [], baseFilter = {}, sort = { createdAt: -1 } }) => {
   const { page, limit, skip } = getPagination(query);
@@ -222,15 +223,25 @@ export const updateUserAdmin = async ({ id, payload, actor, req }) => {
 };
 
 export const reviewUserApprovalAdmin = async ({ id, payload, actor, req }) =>
-  updateUserAdmin({
-    id,
-    payload: {
-      approvalStatus: payload.approvalStatus,
-      approvalNotes: payload.approvalNotes || ''
-    },
-    actor,
-    req
-  });
+  (async () => {
+    const user = await updateUserAdmin({
+      id,
+      payload: {
+        approvalStatus: payload.approvalStatus,
+        approvalNotes: payload.approvalNotes || ''
+      },
+      actor,
+      req
+    });
+
+    await notifyApprovalResult({
+      user,
+      approved: payload.approvalStatus === 'approved',
+      notes: payload.approvalNotes || ''
+    });
+
+    return user;
+  })();
 
 export const banUserAdmin = async ({ id, reason, actor, req, banned }) => {
   const user = await User.findByIdAndUpdate(

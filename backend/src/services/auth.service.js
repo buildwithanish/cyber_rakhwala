@@ -10,6 +10,7 @@ import { createFingerprint, createOtp, createRandomToken } from '../utils/crypto
 import { createAuditLog } from './audit.service.js';
 import { createActivity, createNotification } from './activity.service.js';
 import {
+  sendApprovalEmail,
   sendOtpEmail,
   sendPasswordResetEmail,
   sendVerificationEmail
@@ -72,6 +73,40 @@ const buildAuthResponse = async ({ user, req }) => {
     session,
     user: sanitizeUser(user)
   };
+};
+
+const createAndSendLoginOtp = async ({ user }) => {
+  const code = createOtp(6);
+  await OtpCode.create({
+    user: user._id,
+    email: user.email.toLowerCase(),
+    purpose: 'login',
+    codeHash: createFingerprint(code),
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+  });
+
+  await sendOtpEmail({
+    email: user.email,
+    code,
+    purpose: 'login'
+  });
+};
+
+const createAndSendEmailVerificationOtp = async ({ user, token, urlBase }) => {
+  const code = createOtp(6);
+  await OtpCode.create({
+    email: user.email.toLowerCase(),
+    purpose: 'email_verification',
+    codeHash: createFingerprint(code),
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+  });
+
+  await sendVerificationEmail({
+    user,
+    token,
+    code,
+    urlBase
+  });
 };
 
 const issueVerificationToken = async ({ user, type }) => {
@@ -165,13 +200,13 @@ export const registerUser = async ({ payload, req }) => {
     user,
     type: 'email_verification'
   });
+  await createAndSendEmailVerificationOtp({
+    user,
+    token: verificationToken,
+    urlBase: env.frontendUrl
+  });
 
   await Promise.all([
-    sendVerificationEmail({
-      user,
-      token: verificationToken,
-      urlBase: env.frontendUrl
-    }),
     createAuditLog({
       actor: user,
       actorRole: user.role,
@@ -226,6 +261,8 @@ export const loginUser = async ({ email, password, req }) => {
     );
   }
 
+  await createAndSendLoginOtp({ user });
+
   await Promise.all([
     createActivity({
       user,
@@ -244,7 +281,12 @@ export const loginUser = async ({ email, password, req }) => {
     })
   ]);
 
-  return buildAuthResponse({ user, req });
+  return {
+    requiresOtp: true,
+    email: user.email,
+    user: sanitizeUser(user),
+    message: 'Login verification code sent to your email'
+  };
 };
 
 export const loginAdminUser = async ({ email, password, req }) => {
@@ -275,6 +317,8 @@ export const loginAdminUser = async ({ email, password, req }) => {
     );
   }
 
+  await createAndSendLoginOtp({ user });
+
   await Promise.all([
     createActivity({
       user,
@@ -293,7 +337,12 @@ export const loginAdminUser = async ({ email, password, req }) => {
     })
   ]);
 
-  return buildAuthResponse({ user, req });
+  return {
+    requiresOtp: true,
+    email: user.email,
+    user: sanitizeUser(user),
+    message: 'Admin verification code sent to your email'
+  };
 };
 
 export const loginDemoUser = async ({ role, req }) => {
@@ -448,7 +497,7 @@ export const updateProfile = async ({ userId, payload, req }) => {
       type: 'email_verification'
     });
 
-    await sendVerificationEmail({
+    await createAndSendEmailVerificationOtp({
       user,
       token: verificationToken,
       urlBase: env.frontendUrl
@@ -572,35 +621,89 @@ export const resetPassword = async ({ token, newPassword, req }) => {
 };
 
 export const verifyEmailAddress = async ({ token, req }) => {
-  const tokenHash = createFingerprint(token);
-  const record = await VerificationToken.findOne({
-    tokenHash,
-    type: 'email_verification',
-    consumedAt: null
-  }).populate('user');
+  const tokenHash = token ? createFingerprint(token) : null;
 
-  if (!record || record.expiresAt < new Date()) {
+  if (token) {
+    const record = await VerificationToken.findOne({
+      tokenHash,
+      type: 'email_verification',
+      consumedAt: null
+    }).populate('user');
+
+    if (!record || record.expiresAt < new Date()) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Verification token is invalid or expired');
+    }
+
+    record.consumedAt = new Date();
+    await record.save();
+    record.user.isEmailVerified = true;
+    await record.user.save();
+
+    await Promise.all([
+      createNotification({
+        user: record.user,
+        title: 'Email verified',
+        message: 'Your account email has been verified successfully.',
+        type: 'success'
+      }),
+      createAuditLog({
+        actor: record.user,
+        actorRole: record.user.role,
+        action: 'user.email.verify',
+        resourceType: 'User',
+        resourceId: String(record.user._id),
+        req
+      })
+    ]);
+    return;
+  }
+
+  const { email, code } = req?.validated?.body || {};
+  if (!email || !code) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Verification token is invalid or expired');
   }
 
-  record.consumedAt = new Date();
-  await record.save();
-  record.user.isEmailVerified = true;
-  await record.user.save();
+  const normalizedEmail = email.toLowerCase();
+  const otpRecord = await OtpCode.findOne({
+    email: normalizedEmail,
+    purpose: 'email_verification',
+    consumedAt: null
+  }).sort({ createdAt: -1 });
+
+  if (!otpRecord || otpRecord.expiresAt < new Date()) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Verification code is invalid or expired');
+  }
+
+  if (otpRecord.codeHash !== createFingerprint(code)) {
+    otpRecord.attempts += 1;
+    await otpRecord.save();
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid verification code');
+  }
+
+  otpRecord.consumedAt = new Date();
+  await otpRecord.save();
+
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+  }
+
+  user.isEmailVerified = true;
+  await user.save();
 
   await Promise.all([
     createNotification({
-      user: record.user,
+      user,
       title: 'Email verified',
       message: 'Your account email has been verified successfully.',
       type: 'success'
     }),
     createAuditLog({
-      actor: record.user,
-      actorRole: record.user.role,
+      actor: user,
+      actorRole: user.role,
       action: 'user.email.verify',
       resourceType: 'User',
-      resourceId: String(record.user._id),
+      resourceId: String(user._id),
       req
     })
   ]);
@@ -640,6 +743,53 @@ export const verifyOtpCode = async ({ email, purpose, code }) => {
 
   record.consumedAt = new Date();
   await record.save();
+};
+
+export const verifyLoginOtpAndIssueSession = async ({ email, code, req }) => {
+  const normalizedEmail = email.toLowerCase();
+  const record = await OtpCode.findOne({
+    email: normalizedEmail,
+    purpose: 'login',
+    consumedAt: null
+  }).sort({ createdAt: -1 });
+
+  if (!record || record.expiresAt < new Date()) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Login OTP has expired');
+  }
+
+  if (record.codeHash !== createFingerprint(code)) {
+    record.attempts += 1;
+    await record.save();
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid login OTP code');
+  }
+
+  record.consumedAt = new Date();
+  await record.save();
+
+  const user = await User.findOne({ email: normalizedEmail });
+  assertPasswordLoginEligibility(user);
+
+  if ((user.approvalStatus || 'approved') !== 'approved') {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Your account is pending admin approval. Please wait for verification.',
+      {
+        code: 'ACCOUNT_PENDING_APPROVAL',
+        approvalStatus: user.approvalStatus || 'pending'
+      }
+    );
+  }
+
+  return buildAuthResponse({ user, req });
+};
+
+export const notifyApprovalResult = async ({ user, approved, notes = '' }) => {
+  await sendApprovalEmail({
+    user,
+    approved,
+    notes,
+    urlBase: env.frontendUrl
+  });
 };
 
 export const listSessions = async (userId) => getUserSessions(userId);

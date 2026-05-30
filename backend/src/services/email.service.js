@@ -53,26 +53,94 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   };
 };
 
-export const sendVerificationEmail = async ({ user, token, urlBase }) =>
+export const sendVerificationEmail = async ({ user, token, code, urlBase }) =>
   sendEmail({
     to: user.email,
-    subject: 'Verify your Cyber Rakhwala account',
-    html: `<p>Hello ${user.name},</p><p>Verify your email by opening <a href="${urlBase}/verify-email?token=${token}">this link</a>.</p>`,
-    text: `Hello ${user.name}, verify your email: ${urlBase}/verify-email?token=${token}`
+    subject: 'Action required: verify your Cyber Rakhwala account',
+    html: `
+      <div style="font-family:Arial,sans-serif;background:#0b1220;color:#e5eef9;padding:24px;border-radius:16px">
+        <h2 style="margin:0 0 12px 0;color:#ffffff">Welcome to Cyber Rakhwala</h2>
+        <p style="line-height:1.6">Hello ${user.name}, your account request has been created successfully. Please verify your email address to continue the approval workflow.</p>
+        ${code ? `<p style="line-height:1.6">Your 6-digit verification code is:</p><div style="font-size:32px;letter-spacing:8px;font-weight:bold;color:#22d3ee;margin:18px 0">${code}</div>` : ''}
+        <p style="line-height:1.6">Verification link:</p>
+        <p><a href="${urlBase}/verify-email?token=${token}" style="color:#22d3ee">Verify my email</a></p>
+        <p style="color:#94a3b8;font-size:12px;margin-top:20px">If you did not create this request, you can safely ignore this message.</p>
+      </div>
+    `,
+    text: `Hello ${user.name}, your account request has been created successfully. ${code ? `Your verification code is ${code}. ` : ''}Verify your email here: ${urlBase}/verify-email?token=${token}`
   });
 
 export const sendPasswordResetEmail = async ({ user, token, urlBase }) =>
   sendEmail({
     to: user.email,
-    subject: 'Reset your Cyber Rakhwala password',
-    html: `<p>Hello ${user.name},</p><p>Reset your password by opening <a href="${urlBase}/reset-password?token=${token}">this link</a>.</p>`,
-    text: `Hello ${user.name}, reset your password: ${urlBase}/reset-password?token=${token}`
+    subject: 'Cyber Rakhwala password reset request',
+    html: `
+      <div style="font-family:Arial,sans-serif;background:#0b1220;color:#e5eef9;padding:24px;border-radius:16px">
+        <h2 style="margin:0 0 12px 0;color:#ffffff">Password reset request</h2>
+        <p style="line-height:1.6">Hello ${user.name}, we received a request to reset your password.</p>
+        <p><a href="${urlBase}/reset-password?token=${token}" style="color:#22d3ee">Reset password</a></p>
+        <p style="color:#94a3b8;font-size:12px;margin-top:20px">This link expires automatically for your security.</p>
+      </div>
+    `,
+    text: `Hello ${user.name}, reset your password here: ${urlBase}/reset-password?token=${token}`
   });
 
 export const sendOtpEmail = async ({ email, code, purpose }) =>
   sendEmail({
     to: email,
-    subject: `Your Cyber Rakhwala ${purpose} OTP`,
-    html: `<p>Your OTP is <strong>${code}</strong>. It expires in 10 minutes.</p>`,
-    text: `Your OTP is ${code}. It expires in 10 minutes.`
+    subject: `Cyber Rakhwala verification code for ${purpose}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;background:#0b1220;color:#e5eef9;padding:24px;border-radius:16px">
+        <h2 style="margin:0 0 12px 0;color:#ffffff">Your one-time verification code</h2>
+        <p style="line-height:1.6">Use the code below to continue your ${purpose} flow.</p>
+        <div style="font-size:32px;letter-spacing:8px;font-weight:bold;color:#22d3ee;margin:18px 0">${code}</div>
+        <p style="color:#94a3b8;font-size:12px">This code expires in 10 minutes and can be used only once.</p>
+      </div>
+    `,
+    text: `Your Cyber Rakhwala verification code for ${purpose} is ${code}. It expires in 10 minutes.`
+  });
+
+export const sendApprovalEmail = async ({ user, approved, notes = '', urlBase }) =>
+  sendEmail({
+    to: user.email,
+    subject: approved
+      ? 'Your Cyber Rakhwala account has been approved'
+      : 'Your Cyber Rakhwala account review result',
+    html: `
+      <div style="font-family:Arial,sans-serif;background:#0b1220;color:#e5eef9;padding:24px;border-radius:16px">
+        <h2 style="margin:0 0 12px 0;color:#ffffff">${approved ? 'Account approved' : 'Account review completed'}</h2>
+        <p style="line-height:1.6">Hello ${user.name}, your Cyber Rakhwala account has been ${approved ? 'approved' : 'reviewed'} by the support team.</p>
+        ${notes ? `<p style="line-height:1.6">Reviewer note: ${notes}</p>` : ''}
+        ${approved ? `<p><a href="${urlBase}/login" style="color:#22d3ee">Sign in to your workspace</a></p>` : '<p style="color:#fca5a5">If you believe this was a mistake, please contact support.</p>'}
+      </div>
+    `,
+    text: `Hello ${user.name}, your Cyber Rakhwala account has been ${approved ? 'approved' : 'reviewed'}. ${notes ? `Note: ${notes}` : ''}`
+  });
+
+export const sendSupportTicketEmail = async ({ to, title, name, body }) =>
+  sendEmail({
+    to,
+    subject: `Cyber Rakhwala support request: ${title}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;background:#0b1220;color:#e5eef9;padding:24px;border-radius:16px">
+        <h2 style="margin:0 0 12px 0;color:#ffffff">${title}</h2>
+        <p style="line-height:1.6">Submitted by <strong>${name}</strong></p>
+        <p style="white-space:pre-line;line-height:1.6">${body}</p>
+      </div>
+    `,
+    text: `${title}\nSubmitted by ${name}\n\n${body}`
+  });
+
+export const sendContactAcknowledgementEmail = async ({ to, name, title }) =>
+  sendEmail({
+    to,
+    subject: 'Cyber Rakhwala support request received',
+    html: `
+      <div style="font-family:Arial,sans-serif;background:#0b1220;color:#e5eef9;padding:24px;border-radius:16px">
+        <h2 style="margin:0 0 12px 0;color:#ffffff">We received your message</h2>
+        <p style="line-height:1.6">Hello ${name}, our support team has received your ${title} request and will review it shortly.</p>
+        <p style="line-height:1.6">For urgent matters, please reply to this email with any additional context you want us to review.</p>
+      </div>
+    `,
+    text: `Hello ${name}, our support team has received your ${title} request and will review it shortly.`
   });

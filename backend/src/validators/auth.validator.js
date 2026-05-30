@@ -30,7 +30,8 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   body: z.object({
     email: z.string().email(),
-    password: z.string().min(1)
+    password: z.string().min(1),
+    otpCode: z.string().length(6).optional()
   }),
   query: z.object({}).optional(),
   params: z.object({}).optional()
@@ -114,9 +115,15 @@ export const emailOnlySchema = z.object({
 });
 
 export const verifyTokenSchema = z.object({
-  body: z.object({
-    token: z.string().min(10)
-  }),
+  body: z
+    .object({
+      token: z.string().min(10).optional(),
+      email: z.string().email().optional(),
+      code: z.string().length(6).optional()
+    })
+    .refine((data) => data.token || (data.email && data.code), {
+      message: 'Provide either a verification token or an email + code pair'
+    }),
   query: z.object({}).optional(),
   params: z.object({}).optional()
 });
@@ -147,6 +154,15 @@ export const verifyOtpSchema = z.object({
   }),
   query: z.object({}).optional(),
   params: z.object({ id: z.string().optional() }).optional()
+});
+
+export const verifyLoginOtpSchema = z.object({
+  body: z.object({
+    email: z.string().email(),
+    code: z.string().length(6)
+  }),
+  query: z.object({}).optional(),
+  params: z.object({}).optional()
 });
 
 export const sessionParamSchema = z.object({

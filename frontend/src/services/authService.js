@@ -31,6 +31,8 @@ const persistAuth = (response) => {
 export const authService = {
   login: async (email, password) => persistAuth(await api.post(`${ENDPOINT}/login`, { email, password })),
 
+  verifyLoginOtp: async (email, code) => persistAuth(await api.post(`${ENDPOINT}/verify-login-otp`, { email, code })),
+
   register: async (userData) => api.post(`${ENDPOINT}/register`, userData),
 
   demoLogin: async (role) => persistAuth(await api.post(`${ENDPOINT}/demo`, { role })),

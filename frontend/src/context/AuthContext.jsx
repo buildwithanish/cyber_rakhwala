@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [pendingOtpEmail, setPendingOtpEmail] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -125,6 +126,16 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const response = await authService.login(email, password);
+        if (response?.requiresOtp) {
+          setPendingOtpEmail(response.email || email);
+          setAuthError('A verification code has been sent to your email.');
+          return {
+            success: true,
+            requiresOtp: true,
+            email: response.email || email,
+            message: response.message || 'Verification code sent'
+          };
+        }
         const userData = response.user || authService.getUser();
         updateUser(userData, false);
         setIsDemo(false);
@@ -185,11 +196,40 @@ export const AuthProvider = ({ children }) => {
     [persistSession, updateUser]
   );
 
+  const verifyLoginOtp = useCallback(
+    async (email, code) => {
+      setIsLoading(true);
+      setAuthError(null);
+
+      try {
+        const response = await authService.verifyLoginOtp(email || pendingOtpEmail, code);
+        const userData = response.user || authService.getUser();
+        updateUser(userData, false);
+        setIsDemo(false);
+        persistSession(userData, false);
+        setPendingOtpEmail('');
+        return { success: true, user: userData };
+      } catch (error) {
+        setAuthError(error.message || 'OTP verification failed');
+        return {
+          success: false,
+          error: error.message,
+          code: error?.data?.code || null,
+          details: error?.data || null
+        };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [pendingOtpEmail, persistSession, updateUser]
+  );
+
   const logout = useCallback(async () => {
     await authService.logout();
     setUser(null);
     setIsDemo(false);
     setAuthError(null);
+    setPendingOtpEmail('');
     localStorage.removeItem('cyberRakhwala_isDemo');
   }, []);
 
@@ -202,8 +242,10 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     isDemo,
     authError,
+    pendingOtpEmail,
     isAuthenticated: !!user && authService.hasAccessToken(),
     login,
+    verifyLoginOtp,
     loginAsDemo,
     signup,
     logout,

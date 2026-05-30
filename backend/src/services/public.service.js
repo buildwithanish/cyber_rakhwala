@@ -6,6 +6,7 @@ import { env } from '../config/env.js';
 import { createNumberSequence } from '../utils/helpers.js';
 import { createActivity } from './activity.service.js';
 import { createAuditLog } from './audit.service.js';
+import { sendContactAcknowledgementEmail, sendSupportTicketEmail } from './email.service.js';
 import { getSettingsByGroup } from './settings.service.js';
 
 export const createSupportEntry = async ({ payload, type, user, req }) => {
@@ -47,6 +48,25 @@ export const createSupportEntry = async ({ payload, type, user, req }) => {
         req
       })
     ]);
+  }
+
+  const supportAddress =
+    (await getSettingsByGroup('public', { isPublic: true }))
+      ?.support_email || 'support@cyberrakhwala.com';
+
+  await sendSupportTicketEmail({
+    to: supportAddress,
+    title: `${type.toUpperCase()} request received`,
+    name: payload.name || user?.name || 'Anonymous',
+    body: payload.message
+  });
+
+  if (payload.email) {
+    await sendContactAcknowledgementEmail({
+      to: payload.email,
+      name: payload.name || user?.name || 'Anonymous',
+      title: type
+    });
   }
 
   return ticket;
