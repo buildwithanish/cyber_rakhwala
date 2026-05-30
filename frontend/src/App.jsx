@@ -1,4 +1,5 @@
 import { BrowserRouter } from 'react-router-dom';
+import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 import { AuthProvider } from './context/AuthContext';
 import { RoleProvider } from './context/RoleContext';
 import { CreditProvider } from './context/CreditContext';
@@ -15,6 +16,10 @@ import SessionTimeoutWarning from './components/common/SessionTimeoutWarning';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import DebugPanel from './components/common/DebugPanel';
 import AppRoutes from './pages/auth/routes/AppRoutes';
+
+const vercelAnalyticsEnabled =
+  import.meta.env.PROD &&
+  String(import.meta.env.VITE_VERCEL_ANALYTICS_ENABLED ?? 'true').toLowerCase() !== 'false';
 
 function App() {
   return (
@@ -36,6 +41,7 @@ function App() {
                                   <AppRoutes />
                                   <SessionTimeoutWarning />
                                   <DebugPanel />
+                                  {vercelAnalyticsEnabled ? <VercelAnalytics /> : null}
                                 </div>
                               </ActivityProvider>
                             </EvidenceProvider>
