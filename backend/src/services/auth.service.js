@@ -53,6 +53,19 @@ const sanitizeUser = (user) => ({
   updatedAt: user.updatedAt
 });
 
+const ADMIN_ROLES = new Set([
+  'admin',
+  'super_admin',
+  'operations_manager',
+  'support_admin',
+  'support_agent',
+  'analyst',
+  'provider_manager',
+  'content_manager'
+]);
+
+const isAdminRole = (role) => ADMIN_ROLES.has(role);
+
 const buildAuthResponse = async ({ user, req }) => {
   const accessToken = signAccessToken(user);
   const { rawRefreshToken, session } = await createUserSession({
@@ -483,8 +496,10 @@ export const updateProfile = async ({ userId, payload, req }) => {
       }
 
       normalizedPayload.email = nextEmail;
-      normalizedPayload.isEmailVerified = false;
-      emailChanged = true;
+      if (!isAdminRole(user.role)) {
+        normalizedPayload.isEmailVerified = false;
+        emailChanged = true;
+      }
     } else {
       delete normalizedPayload.email;
     }

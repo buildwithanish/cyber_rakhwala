@@ -41,7 +41,7 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   const mailPromise = instance.sendMail({
-    from: `"${env.smtp.fromName}" <${env.smtp.fromAddress}>`,
+    from: `"${env.smtp.fromName}" <${env.smtp.user || env.smtp.fromAddress}>`,
     to,
     subject,
     html,

@@ -89,7 +89,7 @@ export const env = {
   smtp: {
     host: process.env.SMTP_HOST ?? '',
     port: parseNumber(process.env.SMTP_PORT, 587),
-    secure: parseBoolean(process.env.SMTP_SECURE, false),
+    secure: parseBoolean(process.env.SMTP_SECURE, parseNumber(process.env.SMTP_PORT, 587) === 465),
     user: process.env.SMTP_USER ?? '',
     pass: process.env.SMTP_PASS ?? '',
     fromName: process.env.EMAIL_FROM_NAME ?? 'Cyber Rakhwala',
