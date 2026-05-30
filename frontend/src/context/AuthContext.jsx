@@ -152,19 +152,37 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const response = await authService.register(userData);
-        const nextUser = response.user || authService.getUser();
-        updateUser(nextUser, false);
         setIsDemo(false);
-        persistSession(nextUser, false);
-        return { success: true, user: nextUser };
+        const needsApproval = response?.needsApproval || response?.approvalStatus === 'pending';
+
+        if (!needsApproval && (response?.accessToken || response?.token || response?.user)) {
+          const nextUser = response.user || authService.getUser();
+          updateUser(nextUser, false);
+          persistSession(nextUser, false);
+          return { success: true, user: nextUser, response };
+        }
+
+        authService.clearLocal();
+        setUser(null);
+        localStorage.removeItem('cyberRakhwala_isDemo');
+        return {
+          success: true,
+          response,
+          pendingApproval: needsApproval
+        };
       } catch (error) {
         setAuthError(error.message || 'Signup failed');
-        return { success: false, error: error.message };
+        return {
+          success: false,
+          error: error.message,
+          code: error?.data?.code || null,
+          details: error?.data || null
+        };
       } finally {
         setIsLoading(false);
       }
     },
-    [persistSession]
+    [persistSession, updateUser]
   );
 
   const logout = useCallback(async () => {

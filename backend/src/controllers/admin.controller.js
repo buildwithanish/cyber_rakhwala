@@ -14,6 +14,7 @@ import {
   listPlansAdmin,
   listProvidersAdmin,
   listRoleProfilesAdmin,
+  listPendingUsersAdmin,
   listSearchLogsAdmin,
   listSettingsAdmin,
   listSubscriptionsAdmin,
@@ -25,6 +26,7 @@ import {
   updateApiKeyAdmin,
   updateTicketAdmin,
   updateUserAdmin,
+  reviewUserApprovalAdmin,
   upsertContentAdmin,
   upsertCouponAdmin,
   upsertDatasetAdmin,
@@ -62,6 +64,9 @@ export const analytics = asyncHandler(async (_req, res) => {
 });
 
 export const users = asyncHandler(async (req, res) => respondList(res, 'Users loaded', listUsersAdmin(req.validated.query)));
+export const pendingUsers = asyncHandler(async (req, res) =>
+  respondList(res, 'Pending users loaded', listPendingUsersAdmin(req.validated.query))
+);
 export const createUser = asyncHandler(async (req, res) => {
   res.success({
     statusCode: 201,
@@ -78,6 +83,17 @@ export const updateUser = asyncHandler(async (req, res) => {
   res.success({
     message: 'User updated',
     data: await updateUserAdmin({
+      id: req.validated.params.id,
+      payload: req.validated.body,
+      actor: req.user,
+      req
+    })
+  });
+});
+export const reviewUserApproval = asyncHandler(async (req, res) => {
+  res.success({
+    message: 'User approval updated',
+    data: await reviewUserApprovalAdmin({
       id: req.validated.params.id,
       payload: req.validated.body,
       actor: req.user,

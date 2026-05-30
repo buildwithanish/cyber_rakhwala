@@ -34,6 +34,9 @@ const listWithPagination = async ({ model, query, searchFields = [], baseFilter 
   if (query.status) {
     filter.status = query.status;
   }
+  if (query.approvalStatus) {
+    filter.approvalStatus = query.approvalStatus;
+  }
   if (query.role) {
     filter.role = query.role;
   }
@@ -82,6 +85,17 @@ export const listUsersAdmin = (query) =>
     model: User,
     query,
     searchFields: ['name', 'email', 'username', 'organization', 'department']
+  });
+
+export const listPendingUsersAdmin = (query) =>
+  listWithPagination({
+    model: User,
+    query,
+    searchFields: ['name', 'email', 'username', 'organization', 'department'],
+    baseFilter: {
+      approvalStatus: 'pending'
+    },
+    sort: { approvalRequestedAt: -1, createdAt: -1 }
   });
 
 export const createUserAdmin = async ({ payload, actor, req }) => {
@@ -168,6 +182,28 @@ export const updateUserAdmin = async ({ id, payload, actor, req }) => {
     delete nextPayload.password;
   }
 
+  if (payload.approvalStatus) {
+    nextPayload.approvalStatus = payload.approvalStatus;
+    nextPayload.approvalReviewedAt = new Date();
+    nextPayload.approvalReviewedBy = actor._id;
+    nextPayload.approvalNotes = payload.approvalNotes || '';
+    if (payload.approvalStatus === 'approved') {
+      nextPayload.isActive = true;
+      nextPayload.isBanned = false;
+      nextPayload.approvalRequestedAt = nextPayload.approvalRequestedAt || new Date();
+    }
+  }
+
+  if (nextPayload.approvalNotes === undefined) {
+    delete nextPayload.approvalNotes;
+  }
+  if (nextPayload.approvalReviewedAt === undefined) {
+    delete nextPayload.approvalReviewedAt;
+  }
+  if (nextPayload.approvalReviewedBy === undefined) {
+    delete nextPayload.approvalReviewedBy;
+  }
+
   const user = await User.findByIdAndUpdate(id, nextPayload, {
     new: true
   });
@@ -184,6 +220,17 @@ export const updateUserAdmin = async ({ id, payload, actor, req }) => {
   });
   return user;
 };
+
+export const reviewUserApprovalAdmin = async ({ id, payload, actor, req }) =>
+  updateUserAdmin({
+    id,
+    payload: {
+      approvalStatus: payload.approvalStatus,
+      approvalNotes: payload.approvalNotes || ''
+    },
+    actor,
+    req
+  });
 
 export const banUserAdmin = async ({ id, reason, actor, req, banned }) => {
   const user = await User.findByIdAndUpdate(

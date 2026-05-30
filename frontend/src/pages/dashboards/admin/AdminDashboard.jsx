@@ -280,6 +280,7 @@ const AdminDashboard = () => {
     threatMap: createBucket(),
     teams: createBucket(),
     users: createBucket(),
+    pendingUsers: createBucket(),
     roles: createBucket(),
     plans: createBucket(),
     coupons: createBucket(),
@@ -426,6 +427,7 @@ const AdminDashboard = () => {
 
       const actionMap = {
         users: () => adminService.getUsers('limit=100'),
+        pendingUsers: () => adminService.getPendingUsers('limit=100'),
         roles: () => adminService.getRoles('limit=100'),
         plans: () => adminService.getPlans('limit=100'),
         coupons: () => adminService.getCoupons('limit=100'),
@@ -474,6 +476,10 @@ const AdminDashboard = () => {
     if (activeModule === 'teams') {
       loadModule('users');
       loadModule('roles');
+    }
+
+    if (activeModule === 'users') {
+      loadModule('pendingUsers');
     }
 
     if (activeModule === 'providers' || activeModule === 'tools' || activeModule === 'datasets') {
@@ -734,6 +740,22 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleUserApproval = async (entry, approvalStatus) => {
+    try {
+      await adminService.reviewUserApproval(entry._id || entry.id, {
+        approvalStatus,
+        approvalNotes:
+          approvalStatus === 'approved'
+            ? 'Approved from admin console'
+            : 'Rejected from admin console'
+      });
+      showFlash(`User ${approvalStatus === 'approved' ? 'approved' : 'rejected'}`);
+      await Promise.all([loadModule('users', true), loadModule('pendingUsers', true), loadModule('overview', true)]);
+    } catch (error) {
+      showFlash(error.message || 'Failed to review approval', 'error');
+    }
+  };
+
   const moduleState = modules[activeModule] || createBucket();
   const overviewState = modules.overview;
   const overview = overviewState.data?.dashboard?.analytics || overviewState.data?.analytics?.overview || {};
@@ -745,6 +767,7 @@ const AdminDashboard = () => {
   const threatData = modules.threatMap.data || { events: [], alerts: [] };
   const teamData = modules.teams.data || { users: [], roles: [] };
   const availableUsers = modules.users.items || [];
+  const pendingUsers = modules.pendingUsers.items || [];
   const availablePlans = modules.plans.items || [];
   const departments = Object.entries(
     (teamData.users || []).reduce((accumulator, entry) => {
@@ -1228,34 +1251,112 @@ const AdminDashboard = () => {
                   </form>
                 </Card>
 
-                <Card title="User directory" description="Ban, unban, and inspect platform users and department staff.">
-                  <div className="space-y-3">
-                    {moduleState.items.length ? moduleState.items.map((entry) => (
-                      <div key={entry._id || entry.id} className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-4">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                          <div>
-                            <div className="font-semibold text-white">{entry.name}</div>
-                            <div className="mt-1 text-sm text-slate-400">{entry.email}</div>
-                            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                              <span className="rounded-full bg-white/5 px-3 py-1 text-slate-300">{entry.role}</span>
-                              {entry.department ? <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-cyan-200">{entry.department}</span> : null}
-                              <span className="rounded-full bg-white/5 px-3 py-1 text-slate-300">{entry.credits ?? 0} credits</span>
+                <div className="space-y-6">
+                  <Card
+                    title="Pending approval queue"
+                    description="New law enforcement and student signups that need manual admin review before login is enabled."
+                  >
+                    <div className="space-y-3">
+                      {pendingUsers.length ? pendingUsers.map((entry) => (
+                        <div key={entry._id || entry.id} className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-4">
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                              <div className="font-semibold text-white">{entry.name}</div>
+                              <div className="mt-1 text-sm text-slate-400">{entry.email}</div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                <span className="rounded-full bg-amber-500/10 px-3 py-1 text-amber-200">
+                                  {entry.role}
+                                </span>
+                                {entry.department ? (
+                                  <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-cyan-200">{entry.department}</span>
+                                ) : null}
+                                <span className="rounded-full bg-white/5 px-3 py-1 text-slate-300">
+                                  Requested {formatDateTime(entry.approvalRequestedAt || entry.createdAt)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() => handleUserApproval(entry, 'approved')}
+                                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500/15 px-4 py-3 text-sm text-emerald-200"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleUserApproval(entry, 'rejected')}
+                                className="inline-flex items-center gap-2 rounded-2xl bg-red-500/15 px-4 py-3 text-sm text-red-200"
+                              >
+                                <Ban className="h-4 w-4" />
+                                Reject
+                              </button>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleUserBanToggle(entry)}
-                            className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm ${
-                              entry.isBanned ? 'bg-emerald-500/15 text-emerald-200' : 'bg-red-500/15 text-red-200'
-                            }`}
-                          >
-                            {entry.isBanned ? <CheckCircle2 className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
-                            {entry.isBanned ? 'Unban user' : 'Ban user'}
-                          </button>
                         </div>
-                      </div>
-                    )) : <EmptyState text="No users loaded yet." />}
-                  </div>
-                </Card>
+                      )) : <EmptyState text="No pending approvals." />}
+                    </div>
+                  </Card>
+
+                  <Card title="User directory" description="Ban, unban, and inspect platform users and department staff.">
+                    <div className="space-y-3">
+                      {moduleState.items.length ? moduleState.items.map((entry) => (
+                        <div key={entry._id || entry.id} className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-4">
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                              <div className="font-semibold text-white">{entry.name}</div>
+                              <div className="mt-1 text-sm text-slate-400">{entry.email}</div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                <span className="rounded-full bg-white/5 px-3 py-1 text-slate-300">{entry.role}</span>
+                                {entry.department ? <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-cyan-200">{entry.department}</span> : null}
+                                <span className="rounded-full bg-white/5 px-3 py-1 text-slate-300">{entry.credits ?? 0} credits</span>
+                                <span
+                                  className={`rounded-full px-3 py-1 ${
+                                    (entry.approvalStatus || 'approved') === 'approved'
+                                      ? 'bg-emerald-500/10 text-emerald-200'
+                                      : (entry.approvalStatus || 'approved') === 'pending'
+                                        ? 'bg-amber-500/10 text-amber-200'
+                                        : 'bg-red-500/10 text-red-200'
+                                  }`}
+                                >
+                                  {(entry.approvalStatus || 'approved').replace('_', ' ')}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {(entry.approvalStatus || 'approved') === 'pending' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleUserApproval(entry, 'approved')}
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500/15 px-4 py-3 text-sm text-emerald-200"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleUserApproval(entry, 'rejected')}
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-red-500/15 px-4 py-3 text-sm text-red-200"
+                                  >
+                                    <Ban className="h-4 w-4" />
+                                    Reject
+                                  </button>
+                                </>
+                              ) : null}
+                              <button
+                                onClick={() => handleUserBanToggle(entry)}
+                                className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm ${
+                                  entry.isBanned ? 'bg-emerald-500/15 text-emerald-200' : 'bg-red-500/15 text-red-200'
+                                }`}
+                              >
+                                {entry.isBanned ? <CheckCircle2 className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                                {entry.isBanned ? 'Unban user' : 'Ban user'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )) : <EmptyState text="No users loaded yet." />}
+                    </div>
+                  </Card>
+                </div>
               </div>
             ) : null}
 

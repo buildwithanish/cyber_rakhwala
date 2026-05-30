@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import CaptchaWidget from '../../components/common/CaptchaWidget';
@@ -27,6 +27,7 @@ import {
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, loginAsDemo, isLoading, authError, clearError, isAuthenticated, user } = useAuth();
   
   const [email, setEmail] = useState('');
@@ -49,6 +50,8 @@ const Login = () => {
   useEffect(() => {
     if (authError) clearError();
   }, [email, password]);
+
+  const approvalMessage = location.state?.message || '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -206,6 +209,12 @@ const Login = () => {
             </motion.div>
           )}
 
+          {approvalMessage ? (
+            <div className="mb-6 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+              {approvalMessage}
+            </div>
+          ) : null}
+
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Field */}
@@ -318,12 +327,19 @@ const Login = () => {
           </form>
 
           {/* Signup Link */}
-          <p className="mt-6 text-center text-slate-400">
+            <p className="mt-6 text-center text-slate-400">
             Don't have an account?{' '}
             <Link to="/signup" className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors">
               Create one
             </Link>
           </p>
+
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-slate-300">
+            <p className="font-medium text-white">Access review</p>
+            <p className="mt-1 text-slate-400">
+              New law-enforcement and student accounts are approved by support before sign-in is enabled.
+            </p>
+          </div>
 
           {isDemoAuthEnabled ? (
             <>

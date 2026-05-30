@@ -40,9 +40,14 @@ export const adminService = {
 
   getUsers: async (query = '') => api.get(`${ENDPOINT}/users${query ? `?${query}` : ''}`),
 
+  getPendingUsers: async (query = '') => api.get(`${ENDPOINT}/users/pending${query ? `?${query}` : ''}`),
+
   createUser: async (payload) => api.post(`${ENDPOINT}/users`, payload),
 
   updateUser: async (id, payload) => api.patch(`${ENDPOINT}/users/${id}`, payload),
+
+  reviewUserApproval: async (id, payload) =>
+    api.patch(`${ENDPOINT}/users/${id}/approval`, payload),
 
   banUser: async (id, reason) => api.post(`${ENDPOINT}/users/${id}/ban`, { reason }),
 

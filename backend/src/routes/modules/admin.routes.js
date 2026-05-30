@@ -16,6 +16,7 @@ import {
   payments,
   plans,
   providers,
+  pendingUsers,
   roles,
   searchLogs,
   settings,
@@ -25,6 +26,7 @@ import {
   threatEvents,
   tickets,
   unbanUser,
+  reviewUserApproval,
   updateApiKey,
   updateTicket,
   updateUser,
@@ -43,6 +45,7 @@ import {
 } from '../../controllers/admin.controller.js';
 import {
   adminBanSchema,
+  adminApprovalSchema,
   adminIdParamSchema,
   adminListSchema,
   adminUpsertSchema
@@ -56,8 +59,10 @@ router.get('/dashboard', authorizePermissions('admin:access'), dashboard);
 router.get('/analytics', authorizePermissions('analytics:read'), analytics);
 
 router.get('/users', authorizePermissions('users:read'), validate(adminListSchema), users);
+router.get('/users/pending', authorizePermissions('users:read'), validate(adminListSchema), pendingUsers);
 router.post('/users', authorizePermissions('users:update'), validate(adminUpsertSchema), createUser);
 router.patch('/users/:id', authorizePermissions('users:update'), validate(adminUpsertSchema), updateUser);
+router.patch('/users/:id/approval', authorizePermissions('users:update'), validate(adminApprovalSchema), reviewUserApproval);
 router.post('/users/:id/ban', authorizePermissions('users:ban'), validate(adminBanSchema), banUser);
 router.post('/users/:id/unban', authorizePermissions('users:ban'), validate(adminIdParamSchema), unbanUser);
 

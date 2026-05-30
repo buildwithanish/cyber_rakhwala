@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { getDashboardPath, isDemoAuthEnabled } from '../../utils/appRoutes';
+import { isDemoAuthEnabled } from '../../utils/appRoutes';
 import {
   Eye,
   EyeOff,
@@ -85,7 +85,13 @@ const Signup = () => {
     });
 
     if (result.success) {
-      navigate(getDashboardPath(result.user?.role || formData.role));
+      navigate('/login', {
+        replace: true,
+        state: {
+          message:
+            'Your account request has been submitted and is waiting for admin approval. You will be able to sign in after approval.'
+        }
+      });
     }
   };
 
@@ -551,6 +557,10 @@ const Signup = () => {
               Sign in
             </Link>
           </p>
+
+          <div className="mt-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-center text-sm text-cyan-100">
+            New accounts are reviewed by support before access is granted. Approval is required for law enforcement and student workspaces.
+          </div>
 
           {isDemoAuthEnabled ? (
             <>

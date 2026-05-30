@@ -6,7 +6,9 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
+    "dev:backend": "npm run dev",
     "start": "node server.js",
+    "start:backend": "npm run start",
     "seed": "node src/scripts/seed.js",
     "lint": "node -e \"console.log('Linting not configured in generated backend yet')\""
   },

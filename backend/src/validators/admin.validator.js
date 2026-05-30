@@ -7,6 +7,7 @@ export const adminListSchema = z.object({
     limit: z.coerce.number().int().positive().optional(),
     search: z.string().optional(),
     status: z.string().optional(),
+    approvalStatus: z.string().optional(),
     role: z.string().optional(),
     group: z.string().optional(),
     category: z.string().optional(),
@@ -29,6 +30,17 @@ export const adminUpsertSchema = z.object({
   query: z.object({}).optional(),
   params: z.object({
     id: z.string().optional()
+  })
+});
+
+export const adminApprovalSchema = z.object({
+  body: z.object({
+    approvalStatus: z.enum(['approved', 'rejected']),
+    approvalNotes: z.string().max(500).optional()
+  }),
+  query: z.object({}).optional(),
+  params: z.object({
+    id: z.string().min(1)
   })
 });
 

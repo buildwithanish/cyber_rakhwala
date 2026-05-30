@@ -54,7 +54,11 @@ export const register = asyncHandler(async (req, res) => {
     payload: req.validated.body,
     req
   });
-  sendAuthPayload(res, payload, 'Account created successfully');
+  res.success({
+    statusCode: 202,
+    message: 'Account request submitted for admin approval',
+    data: payload
+  });
 });
 
 export const login = asyncHandler(async (req, res) => {

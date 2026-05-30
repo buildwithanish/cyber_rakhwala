@@ -38,6 +38,11 @@ const sanitizeUser = (user) => ({
   organization: user.organization,
   phone: user.phone,
   bio: user.bio,
+  approvalStatus: user.approvalStatus || 'approved',
+  approvalRequestedAt: user.approvalRequestedAt,
+  approvalReviewedAt: user.approvalReviewedAt,
+  approvalReviewedBy: user.approvalReviewedBy,
+  approvalNotes: user.approvalNotes || '',
   credits: user.credits,
   isEmailVerified: user.isEmailVerified,
   isActive: user.isActive,
@@ -96,6 +101,12 @@ const assertPasswordLoginEligibility = (user) => {
       code: 'ACCOUNT_DISABLED'
     });
   }
+
+  if ((user.approvalStatus || 'approved') === 'rejected') {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'Account access has been rejected', {
+      code: 'ACCOUNT_REJECTED'
+    });
+  }
 };
 
 const authenticatePasswordUser = async ({ email, password, allowRoles, blockRoles = [] }) => {
@@ -145,6 +156,8 @@ export const registerUser = async ({ payload, req }) => {
     role: payload.role,
     phone: payload.phone,
     organization: payload.organization,
+    approvalStatus: 'pending',
+    approvalRequestedAt: new Date(),
     credits: payload.role === 'user' ? 100 : 50
   });
 
@@ -177,7 +190,12 @@ export const registerUser = async ({ payload, req }) => {
     })
   ]);
 
-  return buildAuthResponse({ user, req });
+  return {
+    user: sanitizeUser(user),
+    approvalStatus: user.approvalStatus,
+    approvalRequestedAt: user.approvalRequestedAt,
+    needsApproval: true
+  };
 };
 
 export const loginUser = async ({ email, password, req }) => {
@@ -195,6 +213,18 @@ export const loginUser = async ({ email, password, req }) => {
       'content_manager'
     ]
   });
+
+  if ((user.approvalStatus || 'approved') !== 'approved') {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Your account is pending admin approval. Please wait for verification.',
+      {
+        code: 'ACCOUNT_PENDING_APPROVAL',
+        approvalStatus: user.approvalStatus || 'pending',
+        approvalRequestedAt: user.approvalRequestedAt || user.createdAt || null
+      }
+    );
+  }
 
   await Promise.all([
     createActivity({
@@ -232,6 +262,18 @@ export const loginAdminUser = async ({ email, password, req }) => {
       'content_manager'
     ]
   });
+
+  if ((user.approvalStatus || 'approved') !== 'approved') {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Admin account is pending approval. Please wait for verification.',
+      {
+        code: 'ACCOUNT_PENDING_APPROVAL',
+        approvalStatus: user.approvalStatus || 'pending',
+        approvalRequestedAt: user.approvalRequestedAt || user.createdAt || null
+      }
+    );
+  }
 
   await Promise.all([
     createActivity({
@@ -422,6 +464,39 @@ export const updateProfile = async ({ userId, payload, req }) => {
     changes: {
       before,
       after: sanitizeUser(user)
+    },
+    req
+  });
+
+  return sanitizeUser(user);
+};
+
+export const approveUserAccount = async ({ userId, approved, actor, notes = '', req }) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+  }
+
+  user.approvalStatus = approved ? 'approved' : 'rejected';
+  user.approvalReviewedAt = new Date();
+  user.approvalReviewedBy = actor?._id;
+  user.approvalNotes = notes || '';
+  user.isActive = approved ? true : user.isActive;
+  if (approved) {
+    user.isBanned = false;
+  }
+
+  await user.save();
+
+  await createAuditLog({
+    actor,
+    actorRole: actor.role,
+    action: approved ? 'admin.user.approve' : 'admin.user.reject',
+    resourceType: 'User',
+    resourceId: String(user._id),
+    metadata: {
+      notes: user.approvalNotes
     },
     req
   });

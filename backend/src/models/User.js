@@ -50,6 +50,16 @@ const userSchema = new mongoose.Schema(
     permissions: [{ type: String }],
     department: { type: String, trim: true, default: '' },
     avatar: { type: String },
+    approvalStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'approved',
+      index: true
+    },
+    approvalRequestedAt: { type: Date },
+    approvalReviewedAt: { type: Date },
+    approvalReviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    approvalNotes: { type: String, trim: true, default: '' },
     credits: { type: Number, default: 100 },
     creditLimit: { type: Number, default: 1000 },
     organization: { type: String, trim: true },
