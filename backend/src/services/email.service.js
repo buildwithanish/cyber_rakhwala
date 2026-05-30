@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 
 let transporter;
+const EMAIL_SEND_TIMEOUT_MS = 8000;
 
 const getTransporter = () => {
   if (transporter) {
@@ -39,13 +40,29 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     };
   }
 
-  const info = await instance.sendMail({
+  const mailPromise = instance.sendMail({
     from: `"${env.smtp.fromName}" <${env.smtp.fromAddress}>`,
     to,
     subject,
     html,
     text
   });
+
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Email send timed out')), EMAIL_SEND_TIMEOUT_MS);
+  });
+
+  let info;
+  try {
+    info = await Promise.race([mailPromise, timeoutPromise]);
+  } catch (error) {
+    logger.warn({ to, subject, error: error.message }, 'Email send failed');
+    return {
+      queued: false,
+      skipped: true,
+      error: error.message
+    };
+  }
 
   return {
     queued: true,

@@ -200,10 +200,12 @@ export const registerUser = async ({ payload, req }) => {
     user,
     type: 'email_verification'
   });
-  await createAndSendEmailVerificationOtp({
+  void createAndSendEmailVerificationOtp({
     user,
     token: verificationToken,
     urlBase: env.frontendUrl
+  }).catch((error) => {
+    console.warn('Email verification dispatch failed:', error?.message || error);
   });
 
   await Promise.all([
@@ -263,7 +265,7 @@ export const loginUser = async ({ email, password, req }) => {
 
   await createAndSendLoginOtp({ user });
 
-  await Promise.all([
+  void Promise.all([
     createActivity({
       user,
       actorName: user.name,
@@ -279,7 +281,9 @@ export const loginUser = async ({ email, password, req }) => {
       resourceId: String(user._id),
       req
     })
-  ]);
+  ]).catch((error) => {
+    console.warn('Login audit dispatch failed:', error?.message || error);
+  });
 
   return {
     requiresOtp: true,
@@ -319,7 +323,7 @@ export const loginAdminUser = async ({ email, password, req }) => {
 
   await createAndSendLoginOtp({ user });
 
-  await Promise.all([
+  void Promise.all([
     createActivity({
       user,
       actorName: user.name,
@@ -335,7 +339,9 @@ export const loginAdminUser = async ({ email, password, req }) => {
       resourceId: String(user._id),
       req
     })
-  ]);
+  ]).catch((error) => {
+    console.warn('Admin login audit dispatch failed:', error?.message || error);
+  });
 
   return {
     requiresOtp: true,
@@ -497,10 +503,12 @@ export const updateProfile = async ({ userId, payload, req }) => {
       type: 'email_verification'
     });
 
-    await createAndSendEmailVerificationOtp({
+    void createAndSendEmailVerificationOtp({
       user,
       token: verificationToken,
       urlBase: env.frontendUrl
+    }).catch((error) => {
+      console.warn('Email verification dispatch failed:', error?.message || error);
     });
   }
 
