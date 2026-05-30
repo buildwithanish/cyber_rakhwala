@@ -93,7 +93,7 @@ export const env = {
     user: process.env.SMTP_USER ?? '',
     pass: process.env.SMTP_PASS ?? '',
     fromName: process.env.EMAIL_FROM_NAME ?? 'Cyber Rakhwala',
-    fromAddress: process.env.EMAIL_FROM_ADDRESS ?? 'no-reply@example.com'
+    fromAddress: process.env.EMAIL_FROM_ADDRESS ?? process.env.SMTP_USER ?? 'no-reply@example.com'
   },
   uploads: {
     storage: process.env.UPLOAD_STORAGE ?? 'local',
