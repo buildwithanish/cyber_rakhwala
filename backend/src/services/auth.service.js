@@ -119,7 +119,10 @@ const assertPasswordLoginEligibility = (user) => {
     });
   }
 
-  if (user.isBanned || !user.isActive) {
+  const isBanned = user.isBanned === true;
+  const isActive = user.isActive !== false;
+
+  if (isBanned || !isActive) {
     throw new ApiError(StatusCodes.FORBIDDEN, 'Account is disabled', {
       code: 'ACCOUNT_DISABLED'
     });
