@@ -235,18 +235,6 @@ export const loginUser = async ({ email, password, req }) => {
     ]
   });
 
-  if (!TRUSTED_LOGIN_ROLES.has(user.role) && (user.approvalStatus || 'approved') !== 'approved') {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      'Your account is pending admin approval. Please wait for verification.',
-      {
-        code: 'ACCOUNT_PENDING_APPROVAL',
-        approvalStatus: user.approvalStatus || 'pending',
-        approvalRequestedAt: user.approvalRequestedAt || user.createdAt || null
-      }
-    );
-  }
-
   void Promise.all([
     createActivity({
       user,
@@ -288,18 +276,6 @@ export const loginAdminUser = async ({ email, password, req }) => {
       'content_manager'
     ]
   });
-
-  if (!TRUSTED_LOGIN_ROLES.has(user.role) && (user.approvalStatus || 'approved') !== 'approved') {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      'Admin account is pending approval. Please wait for verification.',
-      {
-        code: 'ACCOUNT_PENDING_APPROVAL',
-        approvalStatus: user.approvalStatus || 'pending',
-        approvalRequestedAt: user.approvalRequestedAt || user.createdAt || null
-      }
-    );
-  }
 
   void Promise.all([
     createActivity({
