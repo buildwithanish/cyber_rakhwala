@@ -64,6 +64,16 @@ const ADMIN_ROLES = new Set([
 ]);
 
 const isAdminRole = (role) => ADMIN_ROLES.has(role);
+const TRUSTED_LOGIN_ROLES = new Set([
+  'admin',
+  'super_admin',
+  'operations_manager',
+  'support_admin',
+  'support_agent',
+  'analyst',
+  'provider_manager',
+  'content_manager'
+]);
 
 const buildAuthResponse = async ({ user, req }) => {
   const accessToken = signAccessToken(user);
@@ -119,6 +129,10 @@ const assertPasswordLoginEligibility = (user) => {
     throw new ApiError(StatusCodes.FORBIDDEN, 'Account access has been rejected', {
       code: 'ACCOUNT_REJECTED'
     });
+  }
+
+  if (TRUSTED_LOGIN_ROLES.has(user.role)) {
+    return;
   }
 };
 
@@ -221,7 +235,7 @@ export const loginUser = async ({ email, password, req }) => {
     ]
   });
 
-  if ((user.approvalStatus || 'approved') !== 'approved') {
+  if (!TRUSTED_LOGIN_ROLES.has(user.role) && (user.approvalStatus || 'approved') !== 'approved') {
     throw new ApiError(
       StatusCodes.FORBIDDEN,
       'Your account is pending admin approval. Please wait for verification.',
@@ -275,7 +289,7 @@ export const loginAdminUser = async ({ email, password, req }) => {
     ]
   });
 
-  if ((user.approvalStatus || 'approved') !== 'approved') {
+  if (!TRUSTED_LOGIN_ROLES.has(user.role) && (user.approvalStatus || 'approved') !== 'approved') {
     throw new ApiError(
       StatusCodes.FORBIDDEN,
       'Admin account is pending approval. Please wait for verification.',

@@ -34,7 +34,12 @@ const seedUsers = async () => {
       role: 'user',
       passwordHash,
       credits: 250,
-      isEmailVerified: true
+      isEmailVerified: true,
+      isActive: true,
+      isBanned: false,
+      approvalStatus: 'approved',
+      approvalRequestedAt: null,
+      approvalReviewedAt: new Date()
     },
     {
       name: 'Admin User',
@@ -43,7 +48,12 @@ const seedUsers = async () => {
       department: 'operations',
       passwordHash,
       credits: 999,
-      isEmailVerified: true
+      isEmailVerified: true,
+      isActive: true,
+      isBanned: false,
+      approvalStatus: 'approved',
+      approvalRequestedAt: null,
+      approvalReviewedAt: new Date()
     },
     {
       name: 'Student Demo',
@@ -51,7 +61,12 @@ const seedUsers = async () => {
       role: 'student',
       passwordHash,
       credits: 100,
-      isEmailVerified: true
+      isEmailVerified: true,
+      isActive: true,
+      isBanned: false,
+      approvalStatus: 'approved',
+      approvalRequestedAt: null,
+      approvalReviewedAt: new Date()
     },
     {
       name: 'Support Admin',
@@ -60,7 +75,12 @@ const seedUsers = async () => {
       department: 'support',
       passwordHash,
       credits: 200,
-      isEmailVerified: true
+      isEmailVerified: true,
+      isActive: true,
+      isBanned: false,
+      approvalStatus: 'approved',
+      approvalRequestedAt: null,
+      approvalReviewedAt: new Date()
     },
     {
       name: 'Provider Manager',
@@ -69,7 +89,12 @@ const seedUsers = async () => {
       department: 'providers',
       passwordHash,
       credits: 200,
-      isEmailVerified: true
+      isEmailVerified: true,
+      isActive: true,
+      isBanned: false,
+      approvalStatus: 'approved',
+      approvalRequestedAt: null,
+      approvalReviewedAt: new Date()
     },
     {
       name: 'Content Manager',
@@ -78,7 +103,12 @@ const seedUsers = async () => {
       department: 'content',
       passwordHash,
       credits: 200,
-      isEmailVerified: true
+      isEmailVerified: true,
+      isActive: true,
+      isBanned: false,
+      approvalStatus: 'approved',
+      approvalRequestedAt: null,
+      approvalReviewedAt: new Date()
     }
   ];
 
