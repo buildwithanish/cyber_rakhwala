@@ -148,6 +148,20 @@ export const sendSupportTicketEmail = async ({ to, title, name, body }) =>
     text: `${title}\nSubmitted by ${name}\n\n${body}`
   });
 
+export const sendAccountRequestEmail = async ({ user }) =>
+  sendEmail({
+    to: user.email,
+    subject: 'Your Cyber Rakhwala account request has been received',
+    html: `
+      <div style="font-family:Arial,sans-serif;background:#0b1220;color:#e5eef9;padding:24px;border-radius:16px">
+        <h2 style="margin:0 0 12px 0;color:#ffffff">Account request received</h2>
+        <p style="line-height:1.6">Hello ${user.name}, we received your account request and our team will review it shortly.</p>
+        <p style="line-height:1.6">You will receive a separate approval email once the review is complete.</p>
+      </div>
+    `,
+    text: `Hello ${user.name}, we received your account request and our team will review it shortly.`
+  });
+
 export const sendContactAcknowledgementEmail = async ({ to, name, title }) =>
   sendEmail({
     to,

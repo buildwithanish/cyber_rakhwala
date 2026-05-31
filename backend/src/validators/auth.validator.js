@@ -30,8 +30,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   body: z.object({
     email: z.string().email(),
-    password: z.string().min(1),
-    otpCode: z.string().length(6).optional()
+    password: z.string().min(1)
   }),
   query: z.object({}).optional(),
   params: z.object({}).optional()
@@ -154,15 +153,6 @@ export const verifyOtpSchema = z.object({
   }),
   query: z.object({}).optional(),
   params: z.object({ id: z.string().optional() }).optional()
-});
-
-export const verifyLoginOtpSchema = z.object({
-  body: z.object({
-    email: z.string().email(),
-    code: z.string().length(6)
-  }),
-  query: z.object({}).optional(),
-  params: z.object({}).optional()
 });
 
 export const sessionParamSchema = z.object({

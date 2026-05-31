@@ -10,10 +10,9 @@ import {
   shouldRenderCaptchaWidget
 } from '../../utils/captcha';
 import { ADMIN_LOGIN_PATH, getDashboardPath, isDemoAuthEnabled } from '../../utils/appRoutes';
-import { 
-  Eye, 
-  EyeOff, 
-  Shield, 
+import {
+  Eye,
+  EyeOff,
   AlertCircle,
   Loader2,
   ArrowRight,
@@ -28,12 +27,10 @@ import {
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, verifyLoginOtp, loginAsDemo, isLoading, authError, clearError, isAuthenticated, user, pendingOtpEmail } = useAuth();
-  
+  const { login, loginAsDemo, isLoading, authError, clearError, isAuthenticated, user } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [requiresOtp, setRequiresOtp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [captchaToken, setCaptchaToken] = useState(null);
@@ -57,15 +54,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = requiresOtp
-      ? await verifyLoginOtp(email || pendingOtpEmail, otpCode)
-      : await login(email, password, captchaToken);
-
-    if (result.success && result.requiresOtp) {
-      setRequiresOtp(true);
-      setOtpCode('');
-      return;
-    }
+    const result = await login(email, password, captchaToken);
 
     if (!result.success && result.code === 'ADMIN_ROUTE_REQUIRED') {
       navigate(ADMIN_LOGIN_PATH, {
@@ -80,14 +69,6 @@ const Login = () => {
 
     if (result.success) {
       navigate(getDashboardPath(result.user?.role || user?.role));
-    }
-  };
-
-  const handleResendOtp = async () => {
-    const result = await login(email, password, captchaToken);
-    if (result?.requiresOtp) {
-      setRequiresOtp(true);
-      setOtpCode('');
     }
   };
 
@@ -112,45 +93,38 @@ const Login = () => {
   const features = [
     { icon: Globe, text: '50+ OSINT Tools' },
     { icon: Zap, text: 'AI-Powered Analysis' },
-    { icon: Users, text: 'Team Collaboration' },
+    { icon: Users, text: 'Team Collaboration' }
   ];
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-            backgroundSize: '40px 40px'
-          }} />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+              backgroundSize: '40px 40px'
+            }}
+          />
         </div>
-
-        {/* Gradient Orbs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl" />
-
-        {/* Content */}
         <div className="relative z-10 flex flex-col justify-center px-16 xl:px-24">
-          {/* Logo */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-12"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-lg shadow-cyan-500/25">
                 <img src="/images/cr-logo.png" alt="CR Logo" className="w-14 h-14 object-contain" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white" style={{ fontFamily: 'Papyrus, fantasy' }}>Cyber Rakhwala</h1>
+                <h1 className="text-3xl font-bold text-white" style={{ fontFamily: 'Papyrus, fantasy' }}>
+                  Cyber Rakhwala
+                </h1>
                 <p className="text-slate-400 text-sm">OSINT Investigation Platform</p>
               </div>
             </div>
           </motion.div>
 
-          {/* Tagline */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -168,7 +142,6 @@ const Login = () => {
             </p>
           </motion.div>
 
-          {/* Features */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -193,30 +166,28 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-10">
             <div className="inline-flex items-center gap-3 mb-2">
               <div className="w-12 h-12 rounded-xl overflow-hidden">
                 <img src="/images/cr-logo.png" alt="CR Logo" className="w-12 h-12 object-contain" />
               </div>
-              <span className="text-2xl font-bold text-white" style={{ fontFamily: 'Papyrus, fantasy' }}>Cyber Rakhwala</span>
+              <span className="text-2xl font-bold text-white" style={{ fontFamily: 'Papyrus, fantasy' }}>
+                Cyber Rakhwala
+              </span>
             </div>
           </div>
 
-          {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-white mb-2">Welcome back</h2>
             <p className="text-slate-400">Sign in to continue your investigation</p>
           </div>
 
-          {/* Error Message */}
           {authError && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -234,59 +205,20 @@ const Login = () => {
             </div>
           ) : null}
 
-          {requiresOtp ? (
-            <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-4 text-sm text-amber-100">
-              <p className="font-semibold text-white">Verification required</p>
-              <p className="mt-1 text-amber-100/90">
-                We sent a 6-digit code to <span className="font-medium">{email || pendingOtpEmail}</span>. Enter it below to complete sign in.
-              </p>
-              <div className="mt-4">
-                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-amber-200/80">OTP Code</label>
-                <input
-                  value={otpCode}
-                  onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="123456"
-                  className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-center text-lg tracking-[0.35em] text-white outline-none"
-                />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200"
-                >
-                  Resend code
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRequiresOtp(false);
-                    setOtpCode('');
-                  }}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200"
-                >
-                  Change account
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Email Address
-              </label>
-              <div className={`relative rounded-xl transition-all duration-200 ${
-                focusedField === 'email' ? 'ring-2 ring-cyan-500/50' : ''
-              }`}>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+              <div
+                className={`relative rounded-xl transition-all duration-200 ${
+                  focusedField === 'email' ? 'ring-2 ring-cyan-500/50' : ''
+                }`}
+              >
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className={`w-5 h-5 transition-colors ${
-                    focusedField === 'email' ? 'text-cyan-400' : 'text-slate-500'
-                  }`} />
+                  <Mail
+                    className={`w-5 h-5 transition-colors ${
+                      focusedField === 'email' ? 'text-cyan-400' : 'text-slate-500'
+                    }`}
+                  />
                 </div>
                 <input
                   type="email"
@@ -300,18 +232,19 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Password
-              </label>
-              <div className={`relative rounded-xl transition-all duration-200 ${
-                focusedField === 'password' ? 'ring-2 ring-cyan-500/50' : ''
-              }`}>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+              <div
+                className={`relative rounded-xl transition-all duration-200 ${
+                  focusedField === 'password' ? 'ring-2 ring-cyan-500/50' : ''
+                }`}
+              >
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className={`w-5 h-5 transition-colors ${
-                    focusedField === 'password' ? 'text-cyan-400' : 'text-slate-500'
-                  }`} />
+                  <Lock
+                    className={`w-5 h-5 transition-colors ${
+                      focusedField === 'password' ? 'text-cyan-400' : 'text-slate-500'
+                    }`}
+                  />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -332,20 +265,18 @@ const Login = () => {
               </div>
             </div>
 
-            {/* CAPTCHA Widget */}
             {showCaptchaWidget ? (
               <div className="flex justify-center">
                 <CaptchaWidget
-                  onVerify={handleCaptchaVerify}
-                  onError={handleCaptchaError}
-                  onExpired={handleCaptchaExpired}
+                  onVerify={setCaptchaToken}
+                  onError={() => setCaptchaError(true)}
+                  onExpired={() => setCaptchaToken(null)}
                   theme="dark"
                   showStatus={false}
                 />
               </div>
             ) : null}
 
-            {/* CAPTCHA Error */}
             {captchaEnabled && !captchaConfigured ? (
               <p className="text-center text-sm text-amber-400">
                 CAPTCHA is not configured for this environment. Sign in will still work.
@@ -357,12 +288,9 @@ const Login = () => {
               </p>
             ) : null}
             {captchaEnabled && captchaProvider === 'recaptcha-v3' ? (
-              <p className="text-center text-xs text-slate-500">
-                Protected by Google reCAPTCHA v3.
-              </p>
+              <p className="text-center text-xs text-slate-500">Protected by Google reCAPTCHA v3.</p>
             ) : null}
 
-            {/* Submit Button */}
             <motion.button
               type="submit"
               disabled={isLoading}
@@ -373,19 +301,18 @@ const Login = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  {requiresOtp ? 'Verifying code...' : 'Signing in...'}
+                  Signing in...
                 </>
               ) : (
                 <>
-                  {requiresOtp ? 'Verify & Sign In' : 'Sign In'}
+                  Sign In
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
             </motion.button>
           </form>
 
-          {/* Signup Link */}
-            <p className="mt-6 text-center text-slate-400">
+          <p className="mt-6 text-center text-slate-400">
             Don't have an account?{' '}
             <Link to="/signup" className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors">
               Create one
@@ -450,7 +377,6 @@ const Login = () => {
             </>
           ) : null}
 
-          {/* Footer */}
           <p className="mt-8 text-center text-slate-600 text-xs">
             © 2026 <span style={{ fontFamily: 'Papyrus, fantasy' }}>Cyber Rakhwala</span>. All rights reserved.
           </p>

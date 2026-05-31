@@ -17,7 +17,6 @@ import {
   refresh,
   register,
   sendOtp,
-  verifyLoginOtp,
   verifyEmail,
   verifyOtp
 } from '../../controllers/auth.controller.js';
@@ -32,7 +31,6 @@ import {
   sendOtpSchema,
   sessionParamSchema,
   updateProfileSchema,
-  verifyLoginOtpSchema,
   verifyOtpSchema,
   verifyTokenSchema
 } from '../../validators/auth.validator.js';
@@ -49,7 +47,6 @@ router.post('/reset-password', validate(resetPasswordSchema), performPasswordRes
 router.post('/verify-email', validate(verifyTokenSchema), verifyEmail);
 router.post('/send-otp', validate(sendOtpSchema), sendOtp);
 router.post('/verify-otp', validate(verifyOtpSchema), verifyOtp);
-router.post('/verify-login-otp', validate(verifyLoginOtpSchema), verifyLoginOtp);
 router.post('/logout', optionalAuthenticate, logout);
 
 router.get('/me', authenticate, me);

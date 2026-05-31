@@ -13,8 +13,6 @@ const AdminLogin = () => {
   const { isAuthenticated, user, updateUser, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [requiresOtp, setRequiresOtp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -38,16 +36,7 @@ const AdminLogin = () => {
     setIsSubmitting(true);
 
     try {
-      const response = requiresOtp
-        ? await authService.verifyLoginOtp(email, otpCode)
-        : await adminService.login(email, password);
-
-      if (response?.requiresOtp) {
-        setRequiresOtp(true);
-        setOtpCode('');
-        setError(response.message || 'A verification code has been sent to your email.');
-        return;
-      }
+      const response = await adminService.login(email, password);
 
       const nextUser = response?.user || authService.getUser();
 
@@ -173,22 +162,6 @@ const AdminLogin = () => {
                 </div>
               </label>
 
-              {requiresOtp ? (
-                <label className="block">
-                  <span className="mb-2 block text-sm text-slate-300">Verification Code</span>
-                  <input
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 px-4 text-white outline-none transition focus:border-cyan-500/50 tracking-[0.3em] text-center"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="123456"
-                    required={requiresOtp}
-                  />
-                </label>
-              ) : null}
-
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -197,11 +170,11 @@ const AdminLogin = () => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {requiresOtp ? 'Verifying code' : 'Signing in'}
+                    Signing in
                   </>
                 ) : (
                   <>
-                    {requiresOtp ? 'Verify & Continue' : 'Continue'}
+                    Continue
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
