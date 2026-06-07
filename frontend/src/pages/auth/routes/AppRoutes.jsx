@@ -4,6 +4,10 @@ import {
   ADMIN_CONSOLE_ROLES,
   ADMIN_DASHBOARD_PATH,
   ADMIN_LOGIN_PATH,
+  LAW_ENFORCEMENT_DASHBOARD_PATH,
+  LEGACY_LAW_ENFORCEMENT_DASHBOARD_PATH,
+  LEGACY_STUDENT_DASHBOARD_PATH,
+  STUDENT_DASHBOARD_PATH,
   getDashboardPath,
   isDemoAuthEnabled
 } from '../../../utils/appRoutes';
@@ -152,13 +156,35 @@ const AppRoutes = () => {
         path="/dashboard"
         element={<DashboardRedirect />}
       />
+      <Route path="/admin" element={<Navigate to={ADMIN_DASHBOARD_PATH} replace />} />
+      <Route path="/student" element={<Navigate to={STUDENT_DASHBOARD_PATH} replace />} />
+      <Route
+        path="/law-enforcement"
+        element={<Navigate to={LAW_ENFORCEMENT_DASHBOARD_PATH} replace />}
+      />
 
       {/* Student Investigation Interface Routes */}
+      <Route
+        path={STUDENT_DASHBOARD_PATH}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <RestrictedFieldInterface />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard/student"
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <RestrictedFieldInterface />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${STUDENT_DASHBOARD_PATH}/tools`}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <ToolAccess />
           </ProtectedRoute>
         }
       />
@@ -171,10 +197,26 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path={`${STUDENT_DASHBOARD_PATH}/cases`}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <CaseFiles />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/dashboard/student/cases"
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <CaseFiles />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${STUDENT_DASHBOARD_PATH}/profile`}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <Profile />
           </ProtectedRoute>
         }
       />
@@ -187,10 +229,26 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path={`${STUDENT_DASHBOARD_PATH}/settings`}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/dashboard/student/settings"
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${STUDENT_DASHBOARD_PATH}/search`}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <Search />
           </ProtectedRoute>
         }
       />
@@ -203,10 +261,26 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path={`${STUDENT_DASHBOARD_PATH}/help`}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <HelpCenter />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/dashboard/student/help"
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <HelpCenter />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${STUDENT_DASHBOARD_PATH}/notifications`}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <Notifications />
           </ProtectedRoute>
         }
       />
@@ -219,10 +293,26 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path={`${STUDENT_DASHBOARD_PATH}/progress`}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <ProgressReports />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/dashboard/student/progress"
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <ProgressReports />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${STUDENT_DASHBOARD_PATH}/feedback`}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <Feedback />
           </ProtectedRoute>
         }
       />
@@ -237,58 +327,122 @@ const AppRoutes = () => {
 
       {/* User Investigation Workspace Routes */}
       <Route
+        path={LAW_ENFORCEMENT_DASHBOARD_PATH}
+        element={
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
+            <CyberAvatarDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/dashboard/user"
         element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
             <CyberAvatarDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${LAW_ENFORCEMENT_DASHBOARD_PATH}/cases`}
+        element={
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
+            <ActiveCases />
           </ProtectedRoute>
         }
       />
       <Route
         path="/dashboard/user/cases"
         element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
             <ActiveCases />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${LAW_ENFORCEMENT_DASHBOARD_PATH}/cases/:caseId`}
+        element={
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
+            <CaseDetailPage />
           </ProtectedRoute>
         }
       />
       <Route
         path="/dashboard/user/cases/:caseId"
         element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
             <CaseDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${LAW_ENFORCEMENT_DASHBOARD_PATH}/evidence`}
+        element={
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
+            <EvidenceBoard />
           </ProtectedRoute>
         }
       />
       <Route
         path="/dashboard/user/evidence"
         element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
             <EvidenceBoard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${LAW_ENFORCEMENT_DASHBOARD_PATH}/settings`}
+        element={
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
+            <ProfileSettings />
           </ProtectedRoute>
         }
       />
       <Route
         path="/dashboard/user/settings"
         element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
             <ProfileSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${LAW_ENFORCEMENT_DASHBOARD_PATH}/notifications`}
+        element={
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
+            <NotificationsPage />
           </ProtectedRoute>
         }
       />
       <Route
         path="/dashboard/user/notifications"
         element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
             <NotificationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={`${LAW_ENFORCEMENT_DASHBOARD_PATH}/recharge`}
+        element={
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
+            <RechargeCredits />
           </ProtectedRoute>
         }
       />
       <Route
         path="/dashboard/user/recharge"
         element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['user', 'law_enforcement']}>
             <RechargeCredits />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/dashboard/*"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_CONSOLE_ROLES}>
+            <AdminDashboard />
           </ProtectedRoute>
         }
       />
@@ -299,6 +453,18 @@ const AppRoutes = () => {
             <AdminDashboard />
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/deepaklogin/console"
+        element={<Navigate to={ADMIN_DASHBOARD_PATH} replace />}
+      />
+      <Route
+        path={LEGACY_STUDENT_DASHBOARD_PATH}
+        element={<Navigate to={STUDENT_DASHBOARD_PATH} replace />}
+      />
+      <Route
+        path={LEGACY_LAW_ENFORCEMENT_DASHBOARD_PATH}
+        element={<Navigate to={LAW_ENFORCEMENT_DASHBOARD_PATH} replace />}
       />
 
       {/* Root redirect - now goes to landing page */}

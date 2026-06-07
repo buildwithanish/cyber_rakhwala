@@ -1,5 +1,12 @@
 import { createContext, useContext, useMemo } from 'react';
 import { useAuth } from './AuthContext';
+import {
+  LAW_ENFORCEMENT_DASHBOARD_PATH,
+  STUDENT_DASHBOARD_PATH,
+  ADMIN_DASHBOARD_PATH,
+  LEGACY_LAW_ENFORCEMENT_DASHBOARD_PATH,
+  LEGACY_STUDENT_DASHBOARD_PATH
+} from '../utils/appRoutes';
 
 const RoleContext = createContext(null);
 
@@ -19,7 +26,7 @@ const roleConfigs = {
     colorSecondary: '#0891b2',
     colorAccent: '#22d3ee',
     bgGradient: 'from-slate-950 via-cyan-950/30 to-slate-950',
-    dashboardPath: '/dashboard/student',
+    dashboardPath: STUDENT_DASHBOARD_PATH,
     displayName: 'Restricted Field Interface',
     displaySubtitle: 'Limited Depth • Fast Credit Burn • System Warnings',
     icon: '🎓',
@@ -40,7 +47,7 @@ const roleConfigs = {
     colorSecondary: '#d97706',
     colorAccent: '#fbbf24',
     bgGradient: 'from-stone-950 via-amber-950/20 to-stone-950',
-    dashboardPath: '/dashboard/user',
+    dashboardPath: LAW_ENFORCEMENT_DASHBOARD_PATH,
     displayName: 'Open Investigation Workspace',
     displaySubtitle: 'Standard Depth • Flexible Layout • Full Correlation',
     icon: '👤',
@@ -99,7 +106,15 @@ export const RoleProvider = ({ children }) => {
               'investigation-grid-user'
       }),
       isStudent: role === 'student',
-      isUser: role === 'user'
+      isUser: role === 'user',
+      dashboardAliases: {
+        admin: ADMIN_DASHBOARD_PATH,
+        student: STUDENT_DASHBOARD_PATH,
+        user: LAW_ENFORCEMENT_DASHBOARD_PATH,
+        law_enforcement: LAW_ENFORCEMENT_DASHBOARD_PATH,
+        legacyStudent: LEGACY_STUDENT_DASHBOARD_PATH,
+        legacyUser: LEGACY_LAW_ENFORCEMENT_DASHBOARD_PATH
+      }
     };
   }, [user?.role]);
 

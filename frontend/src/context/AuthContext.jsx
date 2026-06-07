@@ -125,7 +125,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const response = await authService.login(email, password);
-        const userData = response.user || authService.getUser();
+        const userData = response.user || (await authService.getCurrentUser());
         updateUser(userData, false);
         setIsDemo(false);
         persistSession(userData, false);
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }) => {
         const needsApproval = response?.needsApproval || response?.approvalStatus === 'pending';
 
         if (!needsApproval && (response?.accessToken || response?.token || response?.user)) {
-          const nextUser = response.user || authService.getUser();
+          const nextUser = response.user || (await authService.getCurrentUser());
           updateUser(nextUser, false);
           persistSession(nextUser, false);
           return { success: true, user: nextUser, response };

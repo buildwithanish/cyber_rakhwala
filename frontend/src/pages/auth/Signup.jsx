@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { isDemoAuthEnabled } from '../../utils/appRoutes';
+import { getDashboardPath, isDemoAuthEnabled } from '../../utils/appRoutes';
 import {
   Eye,
   EyeOff,

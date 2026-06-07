@@ -17,7 +17,12 @@ export const ADMIN_API_SEGMENT = toPathSegment(
 );
 
 export const ADMIN_LOGIN_PATH = `/${ADMIN_LOGIN_SEGMENT}`;
-export const ADMIN_DASHBOARD_PATH = `/${ADMIN_LOGIN_SEGMENT}/console`;
+export const ADMIN_DASHBOARD_PATH = '/admin/dashboard';
+export const ADMIN_LEGACY_DASHBOARD_PATH = `/${ADMIN_LOGIN_SEGMENT}/console`;
+export const STUDENT_DASHBOARD_PATH = '/student/dashboard';
+export const LAW_ENFORCEMENT_DASHBOARD_PATH = '/law-enforcement/dashboard';
+export const LEGACY_STUDENT_DASHBOARD_PATH = '/dashboard/student';
+export const LEGACY_LAW_ENFORCEMENT_DASHBOARD_PATH = '/dashboard/user';
 export const ADMIN_API_BASE = `/${ADMIN_API_SEGMENT}`;
 export const ADMIN_CONSOLE_ROLES = [
   'super_admin',
@@ -41,9 +46,9 @@ export const getDashboardPath = (role) => {
     return ADMIN_DASHBOARD_PATH;
   }
 
-  if (role === 'user') {
-    return '/dashboard/user';
+  if (role === 'user' || role === 'law_enforcement' || role === 'law-enforcement') {
+    return LAW_ENFORCEMENT_DASHBOARD_PATH;
   }
 
-  return '/dashboard/student';
+  return STUDENT_DASHBOARD_PATH;
 };

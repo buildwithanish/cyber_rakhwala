@@ -37,8 +37,7 @@ const AdminLogin = () => {
 
     try {
       const response = await adminService.login(email, password);
-
-      const nextUser = response?.user || authService.getUser();
+      const nextUser = response?.user || (await authService.getCurrentUser());
 
       if (!nextUser || !ADMIN_CONSOLE_ROLES.includes(nextUser.role)) {
         await authService.logout();
