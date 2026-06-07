@@ -140,6 +140,12 @@ const assertPasswordLoginEligibility = (user) => {
     });
   }
 
+  if ((user.approvalStatus || 'approved') === 'pending') {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'Your account is waiting for admin approval', {
+      code: 'ACCOUNT_PENDING_APPROVAL'
+    });
+  }
+
   if ((user.approvalStatus || 'approved') === 'rejected') {
     throw new ApiError(StatusCodes.FORBIDDEN, 'Account access has been rejected', {
       code: 'ACCOUNT_REJECTED'
