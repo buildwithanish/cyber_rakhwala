@@ -13,12 +13,10 @@ import {
   registerUser,
   resetPassword,
   revokeSessionById,
-  sendOtpCode,
   sendPasswordReset,
   updatePassword,
   updateProfile,
-  verifyEmailAddress,
-  verifyOtpCode
+  verifyEmailAddress
 } from '../services/auth.service.js';
 
 const refreshCookieName = 'cyber_rakhwala_refresh';
@@ -176,20 +174,6 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   });
   res.success({
     message: 'Email verified successfully'
-  });
-});
-
-export const sendOtp = asyncHandler(async (req, res) => {
-  await sendOtpCode(req.validated.body);
-  res.success({
-    message: 'OTP sent successfully'
-  });
-});
-
-export const verifyOtp = asyncHandler(async (req, res) => {
-  await verifyOtpCode(req.validated.body);
-  res.success({
-    message: 'OTP verified successfully'
   });
 });
 

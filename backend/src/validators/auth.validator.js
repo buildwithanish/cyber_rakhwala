@@ -136,25 +136,6 @@ export const resetPasswordSchema = z.object({
   params: z.object({}).optional()
 });
 
-export const sendOtpSchema = z.object({
-  body: z.object({
-    email: z.string().email(),
-    purpose: z.enum(['login', 'signup', 'email_verification', 'password_reset', 'sensitive_action'])
-  }),
-  query: z.object({}).optional(),
-  params: z.object({}).optional()
-});
-
-export const verifyOtpSchema = z.object({
-  body: z.object({
-    email: z.string().email(),
-    purpose: z.enum(['login', 'signup', 'email_verification', 'password_reset', 'sensitive_action']),
-    code: z.string().length(6)
-  }),
-  query: z.object({}).optional(),
-  params: z.object({ id: z.string().optional() }).optional()
-});
-
 export const sessionParamSchema = z.object({
   body: z.object({}).optional(),
   query: z.object({}).optional(),

@@ -43,7 +43,8 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
   }
 
   const user = await User.findById(payload.sub);
-  if (!user || !user.isActive) {
+  const isActive = user?.isActive !== false;
+  if (!user || !isActive) {
     throw new ApiError(StatusCodes.UNAUTHORIZED, 'User session is no longer valid', {
       code: 'INVALID_SESSION'
     });
@@ -64,7 +65,12 @@ export const optionalAuthenticate = asyncHandler(async (req, _res, next) => {
       issuer: env.jwt.issuer,
       audience: env.jwt.audience
     });
-    req.user = await User.findById(payload.sub);
+    const user = await User.findById(payload.sub);
+    if (user && user.isActive !== false) {
+      req.user = user;
+    } else {
+      req.user = null;
+    }
   } catch {
     req.user = null;
   }

@@ -2,11 +2,10 @@ import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import { StatusCodes } from 'http-status-codes';
 import { env } from '../config/env.js';
-import { OtpCode } from '../models/OtpCode.js';
 import { User } from '../models/User.js';
 import { VerificationToken } from '../models/VerificationToken.js';
 import { ApiError } from '../utils/ApiError.js';
-import { createFingerprint, createOtp, createRandomToken } from '../utils/crypto.js';
+import { createFingerprint, createRandomToken } from '../utils/crypto.js';
 import { createAuditLog } from './audit.service.js';
 import { createActivity, createNotification } from './activity.service.js';
 import {
@@ -629,95 +628,9 @@ export const verifyEmailAddress = async ({ token, req }) => {
         resourceId: String(record.user._id),
         req
       })
-    ]);
+      ]);
     return;
   }
-
-  const { email, code } = req?.validated?.body || {};
-  if (!email || !code) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Verification token is invalid or expired');
-  }
-
-  const normalizedEmail = email.toLowerCase();
-  const otpRecord = await OtpCode.findOne({
-    email: normalizedEmail,
-    purpose: 'email_verification',
-    consumedAt: null
-  }).sort({ createdAt: -1 });
-
-  if (!otpRecord || otpRecord.expiresAt < new Date()) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Verification code is invalid or expired');
-  }
-
-  if (otpRecord.codeHash !== createFingerprint(code)) {
-    otpRecord.attempts += 1;
-    await otpRecord.save();
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid verification code');
-  }
-
-  otpRecord.consumedAt = new Date();
-  await otpRecord.save();
-
-  const user = await User.findOne({ email: normalizedEmail });
-  if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
-  }
-
-  user.isEmailVerified = true;
-  await user.save();
-
-  await Promise.all([
-    createNotification({
-      user,
-      title: 'Email verified',
-      message: 'Your account email has been verified successfully.',
-      type: 'success'
-    }),
-    createAuditLog({
-      actor: user,
-      actorRole: user.role,
-      action: 'user.email.verify',
-      resourceType: 'User',
-      resourceId: String(user._id),
-      req
-    })
-  ]);
-};
-
-export const sendOtpCode = async ({ email, purpose }) => {
-  const code = createOtp(6);
-  await OtpCode.create({
-    email: email.toLowerCase(),
-    purpose,
-    codeHash: createFingerprint(code),
-    expiresAt: new Date(Date.now() + 10 * 60 * 1000)
-  });
-  await sendOtpEmail({
-    email,
-    code,
-    purpose
-  });
-};
-
-export const verifyOtpCode = async ({ email, purpose, code }) => {
-  const record = await OtpCode.findOne({
-    email: email.toLowerCase(),
-    purpose,
-    consumedAt: null
-  }).sort({ createdAt: -1 });
-
-  if (!record || record.expiresAt < new Date()) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'OTP has expired');
-  }
-
-  if (record.codeHash !== createFingerprint(code)) {
-    record.attempts += 1;
-    await record.save();
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid OTP code');
-  }
-
-  record.consumedAt = new Date();
-  await record.save();
 };
 
 export const notifyApprovalResult = async ({ user, approved, notes = '' }) => {

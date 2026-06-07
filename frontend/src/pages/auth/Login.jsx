@@ -35,6 +35,7 @@ const Login = () => {
   const [focusedField, setFocusedField] = useState(null);
   const [captchaToken, setCaptchaToken] = useState(null);
   const [captchaError, setCaptchaError] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const captchaEnabled = isCaptchaEnabled();
   const captchaConfigured = isCaptchaConfigured();
   const showCaptchaWidget = captchaEnabled && shouldRenderCaptchaWidget();
@@ -47,6 +48,10 @@ const Login = () => {
   }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
+    if (authError) setSubmitError(authError);
+  }, [authError]);
+
+  useEffect(() => {
     if (authError) clearError();
   }, [email, password]);
 
@@ -54,6 +59,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError('');
     const result = await login(email, password, captchaToken);
 
     if (!result.success && result.code === 'ADMIN_ROUTE_REQUIRED') {
@@ -69,6 +75,10 @@ const Login = () => {
 
     if (result.success) {
       navigate(getDashboardPath(result.user?.role || user?.role));
+    } else {
+      setSubmitError(
+        result.error || result.details?.message || 'Invalid email or password'
+      );
     }
   };
 
@@ -188,14 +198,14 @@ const Login = () => {
             <p className="text-slate-400">Sign in to continue your investigation</p>
           </div>
 
-          {authError && (
+          {(submitError || authError) && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3"
             >
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-              <p className="text-red-400 text-sm">{authError}</p>
+              <p className="text-red-400 text-sm">{submitError || authError}</p>
             </motion.div>
           )}
 

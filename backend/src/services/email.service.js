@@ -1,72 +1,11 @@
-import nodemailer from 'nodemailer';
-import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 
-let transporter;
-const EMAIL_SEND_TIMEOUT_MS = 8000;
-
-const getTransporter = () => {
-  if (transporter) {
-    return transporter;
-  }
-
-  if (!env.smtp.host) {
-    return null;
-  }
-
-  transporter = nodemailer.createTransport({
-    host: env.smtp.host,
-    port: env.smtp.port,
-    secure: env.smtp.secure,
-    auth: env.smtp.user
-      ? {
-          user: env.smtp.user,
-          pass: env.smtp.pass
-        }
-      : undefined
-  });
-
-  return transporter;
-};
-
 export const sendEmail = async ({ to, subject, html, text }) => {
-  const instance = getTransporter();
-
-  if (!instance) {
-    logger.warn({ to, subject }, 'SMTP not configured; email not sent');
-    return {
-      queued: false,
-      skipped: true
-    };
-  }
-
-  const mailPromise = instance.sendMail({
-    from: `"${env.smtp.fromName}" <${env.smtp.user || env.smtp.fromAddress}>`,
-    to,
-    subject,
-    html,
-    text
-  });
-
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Email send timed out')), EMAIL_SEND_TIMEOUT_MS);
-  });
-
-  let info;
-  try {
-    info = await Promise.race([mailPromise, timeoutPromise]);
-  } catch (error) {
-    logger.warn({ to, subject, error: error.message }, 'Email send failed');
-    return {
-      queued: false,
-      skipped: true,
-      error: error.message
-    };
-  }
-
+  logger.info({ to, subject, hasHtml: !!html, hasText: !!text }, 'Email delivery skipped: SMTP removed');
   return {
-    queued: true,
-    messageId: info.messageId
+    queued: false,
+    skipped: true,
+    disabled: true
   };
 };
 
@@ -100,21 +39,6 @@ export const sendPasswordResetEmail = async ({ user, token, urlBase }) =>
       </div>
     `,
     text: `Hello ${user.name}, reset your password here: ${urlBase}/reset-password?token=${token}`
-  });
-
-export const sendOtpEmail = async ({ email, code, purpose }) =>
-  sendEmail({
-    to: email,
-    subject: `Cyber Rakhwala verification code for ${purpose}`,
-    html: `
-      <div style="font-family:Arial,sans-serif;background:#0b1220;color:#e5eef9;padding:24px;border-radius:16px">
-        <h2 style="margin:0 0 12px 0;color:#ffffff">Your one-time verification code</h2>
-        <p style="line-height:1.6">Use the code below to continue your ${purpose} flow.</p>
-        <div style="font-size:32px;letter-spacing:8px;font-weight:bold;color:#22d3ee;margin:18px 0">${code}</div>
-        <p style="color:#94a3b8;font-size:12px">This code expires in 10 minutes and can be used only once.</p>
-      </div>
-    `,
-    text: `Your Cyber Rakhwala verification code for ${purpose} is ${code}. It expires in 10 minutes.`
   });
 
 export const sendApprovalEmail = async ({ user, approved, notes = '', urlBase }) =>
