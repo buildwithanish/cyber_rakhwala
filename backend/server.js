@@ -5,9 +5,11 @@ import { logger } from './src/config/logger.js';
 import { createApp } from './src/app.js';
 import { initializeSockets } from './src/sockets/index.js';
 import { startJobs } from './src/jobs/index.js';
+import { ensureCoreAuthAccounts } from './src/scripts/bootstrap-auth.js';
 
 const startServer = async () => {
   await connectDatabase();
+  await ensureCoreAuthAccounts();
 
   const app = createApp();
   const server = http.createServer(app);

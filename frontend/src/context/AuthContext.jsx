@@ -122,6 +122,7 @@ export const AuthProvider = ({ children }) => {
     async (email, password) => {
       setIsLoading(true);
       setAuthError(null);
+      authService.clearLocal();
 
       try {
         const response = await authService.login(email, password);
@@ -149,6 +150,7 @@ export const AuthProvider = ({ children }) => {
     async (userData) => {
       setIsLoading(true);
       setAuthError(null);
+      authService.clearLocal();
 
       try {
         const response = await authService.register(userData);

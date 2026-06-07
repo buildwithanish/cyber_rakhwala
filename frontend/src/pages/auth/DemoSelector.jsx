@@ -62,7 +62,7 @@ const DemoSelector = () => {
       description: 'All tools available with restricted output depth. Faster credit drain and system-enforced limitations.'
     },
     {
-      role: 'user',
+      role: 'law_enforcement',
       title: 'Open Investigation Workspace',
       subtitle: 'STANDARD ACCESS • INVESTIGATOR',
       icon: Target,

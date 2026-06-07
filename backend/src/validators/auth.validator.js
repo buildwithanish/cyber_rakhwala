@@ -18,7 +18,7 @@ export const registerSchema = z.object({
     name: z.string().min(2).max(120),
     email: z.string().email(),
     password: passwordSchema,
-    role: z.enum(['student', 'user']).default('student'),
+    role: z.enum(['student', 'law_enforcement']).default('student'),
     username: z.string().min(3).max(60).optional(),
     phone: z.string().min(6).max(30).optional(),
     organization: z.string().max(120).optional()
@@ -38,7 +38,7 @@ export const loginSchema = z.object({
 
 export const demoLoginSchema = z.object({
   body: z.object({
-    role: z.enum(['student', 'user', 'admin']).default('student')
+    role: z.enum(['student', 'law_enforcement', 'admin']).default('student')
   }),
   query: z.object({}).optional(),
   params: z.object({}).optional()

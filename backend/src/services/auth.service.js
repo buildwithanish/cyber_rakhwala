@@ -74,6 +74,8 @@ const TRUSTED_LOGIN_ROLES = new Set([
   'content_manager'
 ]);
 
+const LAW_ENFORCEMENT_ROLES = new Set(['user', 'law_enforcement']);
+
 const LEGACY_PASSWORD_FALLBACKS = new Set(
   [
     env.demoPassword,
@@ -250,6 +252,7 @@ export const loginUser = async ({ email, password, req }) => {
   const user = await authenticatePasswordUser({
     email,
     password,
+    allowRoles: ['student', ...LAW_ENFORCEMENT_ROLES],
     blockRoles: [
       'admin',
       'super_admin',
@@ -374,7 +377,7 @@ export const loginWithGoogle = async ({ idToken, req }) => {
       name: payload.name || email.split('@')[0],
       email,
       googleId: payload.sub,
-      role: 'user',
+      role: 'law_enforcement',
       avatar: payload.picture,
       isEmailVerified: true,
       credits: 100

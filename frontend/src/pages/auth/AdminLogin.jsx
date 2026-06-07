@@ -34,6 +34,7 @@ const AdminLogin = () => {
     setError('');
     clearError();
     setIsSubmitting(true);
+    authService.clearLocal();
 
     try {
       const response = await adminService.login(email, password);

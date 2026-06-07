@@ -109,7 +109,7 @@ const Signup = () => {
       color: 'cyan',
     },
     {
-      id: 'user',
+      id: 'law_enforcement',
       title: 'Law Enforcement',
       description: 'Full access to all investigation tools and features',
       icon: FileSearch,

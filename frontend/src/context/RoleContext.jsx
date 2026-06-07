@@ -106,7 +106,7 @@ export const RoleProvider = ({ children }) => {
               'investigation-grid-user'
       }),
       isStudent: role === 'student',
-      isUser: role === 'user',
+      isUser: role === 'user' || role === 'law_enforcement',
       dashboardAliases: {
         admin: ADMIN_DASHBOARD_PATH,
         student: STUDENT_DASHBOARD_PATH,

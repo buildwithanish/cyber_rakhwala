@@ -121,7 +121,7 @@ export const createUserAdmin = async ({ payload, actor, req }) => {
     role: payload.role || 'user',
     permissions: payload.permissions || [],
     department: payload.department || '',
-    credits: payload.credits ?? (payload.role === 'user' ? 100 : 50),
+    credits: payload.credits ?? (payload.role === 'user' || payload.role === 'law_enforcement' ? 100 : 50),
     creditLimit: payload.creditLimit ?? 1000,
     organization: payload.organization,
     phone: payload.phone,

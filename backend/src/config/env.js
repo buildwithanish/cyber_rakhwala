@@ -86,15 +86,6 @@ export const env = {
   seedDemoUsers: parseBoolean(process.env.SEED_DEMO_USERS, false),
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-  smtp: {
-    host: process.env.SMTP_HOST ?? '',
-    port: parseNumber(process.env.SMTP_PORT, 587),
-    secure: parseBoolean(process.env.SMTP_SECURE, parseNumber(process.env.SMTP_PORT, 587) === 465),
-    user: process.env.SMTP_USER ?? '',
-    pass: process.env.SMTP_PASS ?? '',
-    fromName: process.env.EMAIL_FROM_NAME ?? 'Cyber Rakhwala',
-    fromAddress: process.env.EMAIL_FROM_ADDRESS ?? process.env.SMTP_USER ?? 'no-reply@example.com'
-  },
   uploads: {
     storage: process.env.UPLOAD_STORAGE ?? 'local',
     localPath: process.env.UPLOAD_LOCAL_PATH ?? './src/uploads'

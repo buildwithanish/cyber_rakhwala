@@ -42,7 +42,8 @@ const userSchema = new mongoose.Schema(
         'provider_manager',
         'content_manager',
         'user',
-        'student'
+        'student',
+        'law_enforcement'
       ],
       default: 'student',
       index: true

@@ -54,7 +54,7 @@ export const CreditProvider = ({ children }) => {
   }, [authLoading, isAuthenticated]);
 
   const isLowCredits = useMemo(() => {
-    const threshold = user?.role === 'user' ? 100 : 50;
+    const threshold = user?.role === 'user' || user?.role === 'law_enforcement' ? 100 : 50;
     return credits < threshold;
   }, [credits, user?.role]);
 
@@ -162,7 +162,7 @@ export const CreditProvider = ({ children }) => {
   }, [authLoading, isAuthenticated, refreshUser, user]);
 
   const getCreditDisplay = useCallback(() => {
-    const maxCredits = user?.creditLimit || (user?.role === 'user' ? 1000 : 500);
+    const maxCredits = user?.creditLimit || (user?.role === 'user' || user?.role === 'law_enforcement' ? 1000 : 500);
     const percentage = maxCredits > 0 ? (credits / maxCredits) * 100 : 0;
 
     let status = 'healthy';
