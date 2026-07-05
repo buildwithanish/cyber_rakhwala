@@ -32,27 +32,13 @@ const listWithPagination = async ({ model, query, searchFields = [], baseFilter 
     ...baseFilter,
     ...buildKeywordQuery(query.search, searchFields)
   };
-  if (query.status) {
-    filter.status = query.status;
-  }
-  if (query.approvalStatus) {
-    filter.approvalStatus = query.approvalStatus;
-  }
-  if (query.role) {
-    filter.role = query.role;
-  }
-  if (query.group) {
-    filter.group = query.group;
-  }
-  if (query.category) {
-    filter.category = query.category;
-  }
-  if (query.department) {
-    filter.department = query.department;
-  }
-  if (query.type) {
-    filter.type = query.type;
-  }
+  if (query.status) filter.status = query.status;
+  if (query.approvalStatus) filter.approvalStatus = query.approvalStatus;
+  if (query.role) filter.role = query.role;
+  if (query.group) filter.group = query.group;
+  if (query.category) filter.category = query.category;
+  if (query.department) filter.department = query.department;
+  if (query.type) filter.type = query.type;
 
   const [items, total] = await Promise.all([
     model.find(filter).sort(sort).skip(skip).limit(limit).lean(),
@@ -73,12 +59,7 @@ export const getAdminDashboard = async () => {
     SupportTicket.find().sort({ createdAt: -1 }).limit(10).lean()
   ]);
 
-  return {
-    analytics,
-    recentUsers,
-    recentPayments,
-    recentTickets
-  };
+  return { analytics, recentUsers, recentPayments, recentTickets };
 };
 
 export const listUsersAdmin = (query) =>
@@ -93,16 +74,12 @@ export const listPendingUsersAdmin = (query) =>
     model: User,
     query,
     searchFields: ['name', 'email', 'username', 'organization', 'department'],
-    baseFilter: {
-      approvalStatus: 'pending'
-    },
+    baseFilter: { approvalStatus: 'pending' },
     sort: { approvalRequestedAt: -1, createdAt: -1 }
   });
 
 export const createUserAdmin = async ({ payload, actor, req }) => {
-  const email = String(payload.email || '')
-    .toLowerCase()
-    .trim();
+  const email = String(payload.email || '').toLowerCase().trim();
   const existing = await User.findOne({ email });
 
   if (existing) {
@@ -137,9 +114,7 @@ export const createUserAdmin = async ({ payload, actor, req }) => {
     action: 'admin.user.create',
     resourceType: 'User',
     resourceId: String(user._id),
-    changes: {
-      after: user.toObject()
-    },
+    changes: { after: user.toObject() },
     req
   });
 
@@ -167,9 +142,7 @@ export const upsertRoleProfileAdmin = async ({ id, payload, actor, req }) => {
     action: id ? 'admin.role.update' : 'admin.role.create',
     resourceType: 'RoleProfile',
     resourceId: String(roleProfile._id),
-    changes: {
-      after: roleProfile.toObject()
-    },
+    changes: { after: roleProfile.toObject() },
     req
   });
   return roleProfile;
@@ -195,28 +168,18 @@ export const updateUserAdmin = async ({ id, payload, actor, req }) => {
     }
   }
 
-  if (nextPayload.approvalNotes === undefined) {
-    delete nextPayload.approvalNotes;
-  }
-  if (nextPayload.approvalReviewedAt === undefined) {
-    delete nextPayload.approvalReviewedAt;
-  }
-  if (nextPayload.approvalReviewedBy === undefined) {
-    delete nextPayload.approvalReviewedBy;
-  }
+  if (nextPayload.approvalNotes === undefined) delete nextPayload.approvalNotes;
+  if (nextPayload.approvalReviewedAt === undefined) delete nextPayload.approvalReviewedAt;
+  if (nextPayload.approvalReviewedBy === undefined) delete nextPayload.approvalReviewedBy;
 
-  const user = await User.findByIdAndUpdate(id, nextPayload, {
-    new: true
-  });
+  const user = await User.findByIdAndUpdate(id, nextPayload, { new: true });
   await createAuditLog({
     actor,
     actorRole: actor.role,
     action: 'admin.user.update',
     resourceType: 'User',
     resourceId: String(id),
-    changes: {
-      after: user?.toObject()
-    },
+    changes: { after: user?.toObject() },
     req
   });
   return user;
@@ -246,13 +209,7 @@ export const reviewUserApprovalAdmin = async ({ id, payload, actor, req }) =>
 export const banUserAdmin = async ({ id, reason, actor, req, banned }) => {
   const user = await User.findByIdAndUpdate(
     id,
-    {
-      $set: {
-        isBanned: banned,
-        isActive: !banned,
-        banReason: banned ? reason : ''
-      }
-    },
+    { $set: { isBanned: banned, isActive: !banned, banReason: banned ? reason : '' } },
     { new: true }
   );
   await createAuditLog({
@@ -261,13 +218,13 @@ export const banUserAdmin = async ({ id, reason, actor, req, banned }) => {
     action: banned ? 'admin.user.ban' : 'admin.user.unban',
     resourceType: 'User',
     resourceId: String(id),
-    metadata: {
-      reason
-    },
+    metadata: { reason },
     req
   });
   return user;
 };
+
+// ─── PLANS ───────────────────────────────────────────────────────────────────
 
 export const listPlansAdmin = (query) =>
   listWithPagination({
@@ -290,37 +247,43 @@ export const upsertPlanAdmin = async ({ id, payload, actor, req }) => {
     action: id ? 'admin.plan.update' : 'admin.plan.create',
     resourceType: 'Plan',
     resourceId: String(plan._id),
-    changes: {
-      after: plan.toObject()
-    },
+    changes: { after: plan.toObject() },
     req
   });
   return plan;
 };
+
+// BUG FIX: deletePlanAdmin missing tha — controller import kar raha tha but function tha hi nahi
+export const deletePlanAdmin = async ({ id, actor, req }) => {
+  const plan = await Plan.findById(id);
+  if (!plan) throw new ApiError(StatusCodes.NOT_FOUND, 'Plan not found');
+
+  await Plan.findByIdAndDelete(id);
+  await createAuditLog({
+    actor,
+    actorRole: actor.role,
+    action: 'admin.plan.delete',
+    resourceType: 'Plan',
+    resourceId: String(id),
+    req
+  });
+};
+
+// ─── PAYMENTS & SUBSCRIPTIONS ────────────────────────────────────────────────
 
 export const listPaymentsAdmin = async (query) => {
   const { page, limit, skip } = getPagination(query);
   const filter = {
     ...buildKeywordQuery(query.search, ['orderId', 'couponCode', 'providerPaymentId'])
   };
-  if (query.status) {
-    filter.status = query.status;
-  }
+  if (query.status) filter.status = query.status;
 
   const [items, total] = await Promise.all([
-    Payment.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('user plan subscription')
-      .lean(),
+    Payment.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user plan subscription').lean(),
     Payment.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const listSubscriptionsAdmin = async (query) => {
@@ -328,24 +291,14 @@ export const listSubscriptionsAdmin = async (query) => {
   const filter = {
     ...buildKeywordQuery(query.search, ['providerSubscriptionId', 'providerCustomerId'])
   };
-  if (query.status) {
-    filter.status = query.status;
-  }
+  if (query.status) filter.status = query.status;
 
   const [items, total] = await Promise.all([
-    Subscription.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('user plan')
-      .lean(),
+    Subscription.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user plan').lean(),
     Subscription.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const upsertSubscriptionAdmin = async ({ id, payload, actor, req }) => {
@@ -371,35 +324,28 @@ export const upsertSubscriptionAdmin = async ({ id, payload, actor, req }) => {
     action: id ? 'admin.subscription.update' : 'admin.subscription.create',
     resourceType: 'Subscription',
     resourceId: String(subscription._id),
-    changes: {
-      after: subscription.toObject()
-    },
+    changes: { after: subscription.toObject() },
     req
   });
   return subscription;
 };
+
+// ─── PROVIDERS ───────────────────────────────────────────────────────────────
 
 export const listProvidersAdmin = async (query) => {
   const { page, limit, skip } = getPagination(query);
   const filter = {
     ...buildKeywordQuery(query.search, ['name', 'slug', 'baseUrl'])
   };
-  if (query.status) {
-    filter.enabled = query.status === 'active';
-  }
-  if (query.type) {
-    filter.type = query.type;
-  }
+  if (query.status) filter.enabled = query.status === 'active';
+  if (query.type) filter.type = query.type;
 
   const [items, total] = await Promise.all([
     ProviderConfig.find(filter).sort({ priority: 1, createdAt: -1 }).skip(skip).limit(limit).lean(),
     ProviderConfig.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const upsertProviderAdmin = async ({ id, payload, actor, req }) => {
@@ -416,32 +362,27 @@ export const upsertProviderAdmin = async ({ id, payload, actor, req }) => {
     action: id ? 'admin.provider.update' : 'admin.provider.create',
     resourceType: 'ProviderConfig',
     resourceId: String(provider._id),
-    changes: {
-      after: provider.toObject()
-    },
+    changes: { after: provider.toObject() },
     req
   });
   return provider;
 };
+
+// ─── DATASETS ────────────────────────────────────────────────────────────────
 
 export const listDatasetsAdmin = async (query) => {
   const { page, limit, skip } = getPagination(query);
   const filter = {
     ...buildKeywordQuery(query.search, ['name', 'slug', 'description'])
   };
-  if (query.status) {
-    filter.enabled = query.status === 'active';
-  }
+  if (query.status) filter.enabled = query.status === 'active';
 
   const [items, total] = await Promise.all([
     Dataset.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('uploadedBy').lean(),
     Dataset.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const upsertDatasetAdmin = async ({ id, payload, actor, req }) => {
@@ -459,39 +400,47 @@ export const upsertDatasetAdmin = async ({ id, payload, actor, req }) => {
     action: id ? 'admin.dataset.update' : 'admin.dataset.create',
     resourceType: 'Dataset',
     resourceId: String(dataset._id),
-    changes: {
-      after: dataset.toObject()
-    },
+    changes: { after: dataset.toObject() },
     req
   });
   return dataset;
 };
+
+// BUG FIX: deleteDatasetAdmin missing tha
+export const deleteDatasetAdmin = async ({ id, actor, req }) => {
+  const dataset = await Dataset.findById(id);
+  if (!dataset) throw new ApiError(StatusCodes.NOT_FOUND, 'Dataset not found');
+
+  await Dataset.findByIdAndDelete(id);
+  await createAuditLog({
+    actor,
+    actorRole: actor.role,
+    action: 'admin.dataset.delete',
+    resourceType: 'Dataset',
+    resourceId: String(id),
+    req
+  });
+};
+
+// ─── COUPONS ─────────────────────────────────────────────────────────────────
 
 export const listCouponsAdmin = async (query) => {
   const { page, limit, skip } = getPagination(query);
   const filter = {
     ...buildKeywordQuery(query.search, ['code', 'name', 'description'])
   };
-  if (query.status) {
-    filter.isActive = query.status === 'active';
-  }
+  if (query.status) filter.isActive = query.status === 'active';
 
   const [items, total] = await Promise.all([
     Coupon.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     Coupon.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const upsertCouponAdmin = async ({ id, payload, actor, req }) => {
-  const data = {
-    ...payload,
-    code: String(payload.code || '').toUpperCase()
-  };
+  const data = { ...payload, code: String(payload.code || '').toUpperCase() };
   const coupon = id
     ? await Coupon.findByIdAndUpdate(id, data, { new: true })
     : await Coupon.create(data);
@@ -501,80 +450,27 @@ export const upsertCouponAdmin = async ({ id, payload, actor, req }) => {
     action: id ? 'admin.coupon.update' : 'admin.coupon.create',
     resourceType: 'Coupon',
     resourceId: String(coupon._id),
-    changes: {
-      after: coupon.toObject()
-    },
+    changes: { after: coupon.toObject() },
     req
   });
   return coupon;
 };
+
+// ─── API KEYS ────────────────────────────────────────────────────────────────
 
 export const listApiKeysAdmin = async (query) => {
   const { page, limit, skip } = getPagination(query);
   const filter = {
     ...buildKeywordQuery(query.search, ['name', 'keyPrefix'])
   };
-  if (query.status) {
-    filter.isActive = query.status === 'active';
-  }
+  if (query.status) filter.isActive = query.status === 'active';
 
   const [items, total] = await Promise.all([
     ApiKey.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('owner').lean(),
     ApiKey.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
-};
-
-export const listToolsAdmin = async (query) => {
-  const { page, limit, skip } = getPagination(query);
-  const filter = {
-    ...buildKeywordQuery(query.search, ['toolId', 'name', 'category', 'description'])
-  };
-  if (query.status) {
-    filter.isEnabled = query.status === 'active';
-  }
-  if (query.category) {
-    filter.category = query.category;
-  }
-
-  const [items, total] = await Promise.all([
-    ToolCatalog.find(filter).sort({ category: 1, name: 1 }).skip(skip).limit(limit).lean(),
-    ToolCatalog.countDocuments(filter)
-  ]);
-
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
-};
-
-export const upsertToolAdmin = async ({ id, payload, actor, req }) => {
-  const data = {
-    ...payload,
-    toolId: String(payload.toolId || payload.slug || payload.id || payload.name || '')
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-  };
-  const tool = id
-    ? await ToolCatalog.findByIdAndUpdate(id, data, { new: true })
-    : await ToolCatalog.create(data);
-  await createAuditLog({
-    actor,
-    actorRole: actor.role,
-    action: id ? 'admin.tool.update' : 'admin.tool.create',
-    resourceType: 'ToolCatalog',
-    resourceId: String(tool._id),
-    changes: {
-      after: tool.toObject()
-    },
-    req
-  });
-  return tool;
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const createApiKeyAdmin = async ({ payload, actor, req }) => {
@@ -596,16 +492,11 @@ export const createApiKeyAdmin = async ({ payload, actor, req }) => {
     resourceId: String(apiKey._id),
     req
   });
-  return {
-    apiKey,
-    rawKey
-  };
+  return { apiKey, rawKey };
 };
 
 export const updateApiKeyAdmin = async ({ id, payload, actor, req }) => {
-  const apiKey = await ApiKey.findByIdAndUpdate(id, payload, {
-    new: true
-  });
+  const apiKey = await ApiKey.findByIdAndUpdate(id, payload, { new: true });
   await createAuditLog({
     actor,
     actorRole: actor.role,
@@ -616,6 +507,81 @@ export const updateApiKeyAdmin = async ({ id, payload, actor, req }) => {
   });
   return apiKey;
 };
+
+// BUG FIX: deleteApiKeyAdmin missing tha — controller import kar raha tha but function tha hi nahi
+export const deleteApiKeyAdmin = async ({ id, actor, req }) => {
+  const apiKey = await ApiKey.findById(id);
+  if (!apiKey) throw new ApiError(StatusCodes.NOT_FOUND, 'API key not found');
+
+  await ApiKey.findByIdAndDelete(id);
+  await createAuditLog({
+    actor,
+    actorRole: actor.role,
+    action: 'admin.api_key.delete',
+    resourceType: 'ApiKey',
+    resourceId: String(id),
+    req
+  });
+};
+
+// ─── TOOLS ───────────────────────────────────────────────────────────────────
+
+export const listToolsAdmin = async (query) => {
+  const { page, limit, skip } = getPagination(query);
+  const filter = {
+    ...buildKeywordQuery(query.search, ['toolId', 'name', 'category', 'description'])
+  };
+  if (query.status) filter.isEnabled = query.status === 'active';
+  if (query.category) filter.category = query.category;
+
+  const [items, total] = await Promise.all([
+    ToolCatalog.find(filter).sort({ category: 1, name: 1 }).skip(skip).limit(limit).lean(),
+    ToolCatalog.countDocuments(filter)
+  ]);
+
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
+};
+
+export const upsertToolAdmin = async ({ id, payload, actor, req }) => {
+  const data = {
+    ...payload,
+    toolId: String(payload.toolId || payload.slug || payload.id || payload.name || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+  };
+  const tool = id
+    ? await ToolCatalog.findByIdAndUpdate(id, data, { new: true })
+    : await ToolCatalog.create(data);
+  await createAuditLog({
+    actor,
+    actorRole: actor.role,
+    action: id ? 'admin.tool.update' : 'admin.tool.create',
+    resourceType: 'ToolCatalog',
+    resourceId: String(tool._id),
+    changes: { after: tool.toObject() },
+    req
+  });
+  return tool;
+};
+
+// BUG FIX: deleteToolAdmin missing tha
+export const deleteToolAdmin = async ({ id, actor, req }) => {
+  const tool = await ToolCatalog.findById(id);
+  if (!tool) throw new ApiError(StatusCodes.NOT_FOUND, 'Tool not found');
+
+  await ToolCatalog.findByIdAndDelete(id);
+  await createAuditLog({
+    actor,
+    actorRole: actor.role,
+    action: 'admin.tool.delete',
+    resourceType: 'ToolCatalog',
+    resourceId: String(id),
+    req
+  });
+};
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
 
 export const listSettingsAdmin = (query) =>
   listWithPagination({
@@ -639,24 +605,21 @@ export const upsertSettingAdmin = async ({ id, payload, actor, req }) => {
   return setting;
 };
 
+// ─── FEATURE TOGGLES ─────────────────────────────────────────────────────────
+
 export const listFeatureTogglesAdmin = async (query) => {
   const { page, limit, skip } = getPagination(query);
   const filter = {
     ...buildKeywordQuery(query.search, ['key', 'description'])
   };
-  if (query.status) {
-    filter.enabled = query.status === 'active';
-  }
+  if (query.status) filter.enabled = query.status === 'active';
 
   const [items, total] = await Promise.all([
     FeatureToggle.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     FeatureToggle.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const upsertFeatureToggleAdmin = async ({ id, payload, actor, req }) => {
@@ -674,27 +637,22 @@ export const upsertFeatureToggleAdmin = async ({ id, payload, actor, req }) => {
   return toggle;
 };
 
+// ─── CONTENT ─────────────────────────────────────────────────────────────────
+
 export const listContentAdmin = async (query) => {
   const { page, limit, skip } = getPagination(query);
   const filter = {
     ...buildKeywordQuery(query.search, ['key', 'section', 'title'])
   };
-  if (query.status) {
-    filter.isPublished = query.status === 'active';
-  }
-  if (query.category) {
-    filter.section = query.category;
-  }
+  if (query.status) filter.isPublished = query.status === 'active';
+  if (query.category) filter.section = query.category;
 
   const [items, total] = await Promise.all([
     ContentBlock.find(filter).sort({ section: 1, key: 1 }).skip(skip).limit(limit).lean(),
     ContentBlock.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const upsertContentAdmin = async ({ id, payload, actor, req }) => {
@@ -712,55 +670,40 @@ export const upsertContentAdmin = async ({ id, payload, actor, req }) => {
   return content;
 };
 
+// ─── SEARCH LOGS ─────────────────────────────────────────────────────────────
+
 export const listSearchLogsAdmin = async (query) => {
   const { page, limit, skip } = getPagination(query);
   const filter = {
     ...buildKeywordQuery(query.search, ['query', 'toolName', 'searchType'])
   };
-  if (query.status) {
-    filter.status = query.status;
-  }
-  if (query.category) {
-    filter.searchType = query.category;
-  }
+  if (query.status) filter.status = query.status;
+  if (query.category) filter.searchType = query.category;
 
   const [items, total] = await Promise.all([
     SearchLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user').lean(),
     SearchLog.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
+
+// ─── TICKETS ─────────────────────────────────────────────────────────────────
 
 export const listTicketsAdmin = async (query) => {
   const { page, limit, skip } = getPagination(query);
   const filter = {
     ...buildKeywordQuery(query.search, ['subject', 'email', 'ticketNumber'])
   };
-  if (query.status) {
-    filter.status = query.status;
-  }
-  if (query.category) {
-    filter.type = query.category;
-  }
+  if (query.status) filter.status = query.status;
+  if (query.category) filter.type = query.category;
 
   const [items, total] = await Promise.all([
-    SupportTicket.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('user')
-      .lean(),
+    SupportTicket.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user').lean(),
     SupportTicket.countDocuments(filter)
   ]);
 
-  return {
-    items,
-    meta: buildPaginationMeta({ page, limit, total })
-  };
+  return { items, meta: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const updateTicketAdmin = async ({ id, payload, actor, req }) => {
@@ -776,10 +719,14 @@ export const updateTicketAdmin = async ({ id, payload, actor, req }) => {
   return ticket;
 };
 
+// ─── ANALYTICS ───────────────────────────────────────────────────────────────
+
 export const getAnalyticsAdmin = async () => ({
   overview: await getAnalyticsOverview(),
   events: await AnalyticsEvent.find().sort({ createdAt: -1 }).limit(100).lean()
 });
+
+// ─── THREATS ─────────────────────────────────────────────────────────────────
 
 export const listThreatEventsAdmin = (query) =>
   listWithPagination({

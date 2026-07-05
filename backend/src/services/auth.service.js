@@ -51,6 +51,7 @@ const sanitizeUser = (user) => ({
   updatedAt: user.updatedAt
 });
 
+// BUG FIX 4: TRUSTED_LOGIN_ROLES aur ADMIN_ROLES duplicate the — ek hi set kaafi hai
 const ADMIN_ROLES = new Set([
   'admin',
   'super_admin',
@@ -63,31 +64,32 @@ const ADMIN_ROLES = new Set([
 ]);
 
 const isAdminRole = (role) => ADMIN_ROLES.has(role);
-const TRUSTED_LOGIN_ROLES = new Set([
-  'admin',
-  'super_admin',
-  'operations_manager',
-  'support_admin',
-  'support_agent',
-  'analyst',
-  'provider_manager',
-  'content_manager'
-]);
 
 const LAW_ENFORCEMENT_ROLES = new Set(['user', 'law_enforcement']);
 
+// BUG FIX 3: Hardcoded real passwords 'Anish@877', 'Anish@8799' remove kiye — SECURITY RISK tha
+// Source code me real passwords kabhi nahi hone chahiye
 const LEGACY_PASSWORD_FALLBACKS = new Set(
   [
     env.demoPassword,
     env.legacyLoginPassword,
     env.legacyPassword,
-    'demo123',
-    'Anish@877',
-    'Anish@8799'
+    'demo123'
   ]
     .filter(Boolean)
     .map((value) => String(value))
 );
+
+// BUG FIX 5: Demo login ke liye valid roles define kiye — pehle koi bhi role pass ho sakta tha
+const VALID_DEMO_ROLES = new Set([
+  'student',
+  'law_enforcement',
+  'user',
+  'admin',
+  'support_admin',
+  'provider_manager',
+  'content_manager'
+]);
 
 const buildAuthResponse = async ({ user, req }) => {
   const accessToken = signAccessToken(user);
@@ -154,7 +156,7 @@ const assertPasswordLoginEligibility = (user) => {
     });
   }
 
-  if (TRUSTED_LOGIN_ROLES.has(user.role)) {
+  if (ADMIN_ROLES.has(user.role)) {
     return;
   }
 };
@@ -195,6 +197,9 @@ const authenticatePasswordUser = async ({ email, password, allowRoles, blockRole
   return user;
 };
 
+// BUG FIX 6: role validation in registerUser — pehle koi bhi role set ho sakta tha
+const ALLOWED_REGISTER_ROLES = new Set(['student', 'law_enforcement', 'user']);
+
 export const registerUser = async ({ payload, req }) => {
   const existing = await User.findOne({ email: payload.email.toLowerCase() });
   if (existing) {
@@ -203,18 +208,21 @@ export const registerUser = async ({ payload, req }) => {
     });
   }
 
+  // Role validate karo — invalid role aane par default 'user' set karo
+  const safeRole = ALLOWED_REGISTER_ROLES.has(payload.role) ? payload.role : 'user';
+
   const passwordHash = await bcrypt.hash(payload.password, 12);
   const user = await User.create({
     name: payload.name,
     username: payload.username,
     email: payload.email.toLowerCase(),
     passwordHash,
-    role: payload.role,
+    role: safeRole,
     phone: payload.phone,
     organization: payload.organization,
     approvalStatus: 'pending',
     approvalRequestedAt: new Date(),
-    credits: payload.role === 'user' ? 100 : 50
+    credits: safeRole === 'user' ? 100 : 50
   });
 
   void sendAccountRequestEmail({ user }).catch((error) => {
@@ -248,6 +256,8 @@ export const registerUser = async ({ payload, req }) => {
   };
 };
 
+// BUG FIX 1: loginUser me buildAuthResponse missing tha
+// Pehle tokens (accessToken, refreshToken) return hi nahi ho rahe the — login ke baad session ban hi nahi raha tha
 export const loginUser = async ({ email, password, req }) => {
   const user = await authenticatePasswordUser({
     email,
@@ -285,12 +295,12 @@ export const loginUser = async ({ email, password, req }) => {
     console.warn('Login audit dispatch failed:', error?.message || error);
   });
 
-  return {
-    user: sanitizeUser(user),
-    message: 'Signed in successfully'
-  };
+  // FIXED: buildAuthResponse call kiya — ab tokens properly return honge
+  return buildAuthResponse({ user, req });
 };
 
+// BUG FIX 2: loginAdminUser me bhi buildAuthResponse missing tha
+// Admin login ke baad accessToken/refreshToken return nahi ho raha tha — ye CRITICAL tha
 export const loginAdminUser = async ({ email, password, req }) => {
   const user = await authenticatePasswordUser({
     email,
@@ -327,15 +337,18 @@ export const loginAdminUser = async ({ email, password, req }) => {
     console.warn('Admin login audit dispatch failed:', error?.message || error);
   });
 
-  return {
-    user: sanitizeUser(user),
-    message: 'Admin signed in successfully'
-  };
+  // FIXED: buildAuthResponse call kiya — ab admin tokens properly return honge
+  return buildAuthResponse({ user, req });
 };
 
 export const loginDemoUser = async ({ role, req }) => {
   if (!env.demoAuthEnabled) {
     throw new ApiError(StatusCodes.FORBIDDEN, 'Demo access is disabled');
+  }
+
+  // BUG FIX 5: Invalid role validation — pehle koi bhi role string accept ho jaati thi
+  if (!VALID_DEMO_ROLES.has(role)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid demo role specified');
   }
 
   const demoEmail = `${role}@demo.cyberrakhwala.local`;
@@ -603,43 +616,44 @@ export const resetPassword = async ({ token, newPassword, req }) => {
   });
 };
 
+// BUG FIX 7: token missing hone par proper error throw karo — pehle silently return hota tha
 export const verifyEmailAddress = async ({ token, req }) => {
-  const tokenHash = token ? createFingerprint(token) : null;
-
-  if (token) {
-    const record = await VerificationToken.findOne({
-      tokenHash,
-      type: 'email_verification',
-      consumedAt: null
-    }).populate('user');
-
-    if (!record || record.expiresAt < new Date()) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Verification token is invalid or expired');
-    }
-
-    record.consumedAt = new Date();
-    await record.save();
-    record.user.isEmailVerified = true;
-    await record.user.save();
-
-    await Promise.all([
-      createNotification({
-        user: record.user,
-        title: 'Email verified',
-        message: 'Your account email has been verified successfully.',
-        type: 'success'
-      }),
-      createAuditLog({
-        actor: record.user,
-        actorRole: record.user.role,
-        action: 'user.email.verify',
-        resourceType: 'User',
-        resourceId: String(record.user._id),
-        req
-      })
-      ]);
-    return;
+  if (!token) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Verification token is required');
   }
+
+  const tokenHash = createFingerprint(token);
+  const record = await VerificationToken.findOne({
+    tokenHash,
+    type: 'email_verification',
+    consumedAt: null
+  }).populate('user');
+
+  if (!record || record.expiresAt < new Date()) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Verification token is invalid or expired');
+  }
+
+  record.consumedAt = new Date();
+  await record.save();
+  record.user.isEmailVerified = true;
+  await record.user.save();
+
+  await Promise.all([
+    createNotification({
+      user: record.user,
+      title: 'Email verified',
+      message: 'Your account email has been verified successfully.',
+      type: 'success'
+    }),
+    createAuditLog({
+      actor: record.user,
+      actorRole: record.user.role,
+      action: 'user.email.verify',
+      resourceType: 'User',
+      resourceId: String(record.user._id),
+      req
+    })
+  ]);
 };
 
 export const notifyApprovalResult = async ({ user, approved, notes = '' }) => {

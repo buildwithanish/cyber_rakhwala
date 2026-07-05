@@ -37,11 +37,18 @@ import {
   upsertSettingAdmin,
   upsertSubscriptionAdmin,
   upsertToolAdmin,
-  upsertThreatAlertAdmin
+  upsertThreatAlertAdmin,
+  // BUG 4 FIX: Delete functions import kiye jo pehle missing the
+  deleteApiKeyAdmin,
+  deleteDatasetAdmin,
+  deletePlanAdmin,
+  deleteToolAdmin
 } from '../services/admin.service.js';
 
+// BUG 3 FIX: null/undefined check add kiya — pehle result null hone par crash ho jaata tha
 const respondList = async (res, message, promise) => {
   const result = await promise;
+  if (!result) throw new Error(`Service returned empty result for: ${message}`);
   res.success({
     message,
     data: result.items,
@@ -63,10 +70,16 @@ export const analytics = asyncHandler(async (_req, res) => {
   });
 });
 
-export const users = asyncHandler(async (req, res) => respondList(res, 'Users loaded', listUsersAdmin(req.validated.query)));
+// ─── USERS ───────────────────────────────────────────────────────────────────
+
+export const users = asyncHandler(async (req, res) =>
+  respondList(res, 'Users loaded', listUsersAdmin(req.validated.query))
+);
+
 export const pendingUsers = asyncHandler(async (req, res) =>
   respondList(res, 'Pending users loaded', listPendingUsersAdmin(req.validated.query))
 );
+
 export const createUser = asyncHandler(async (req, res) => {
   res.success({
     statusCode: 201,
@@ -78,7 +91,7 @@ export const createUser = asyncHandler(async (req, res) => {
     })
   });
 });
-export const roles = asyncHandler(async (req, res) => respondList(res, 'Role profiles loaded', listRoleProfilesAdmin(req.validated.query)));
+
 export const updateUser = asyncHandler(async (req, res) => {
   res.success({
     message: 'User updated',
@@ -90,6 +103,7 @@ export const updateUser = asyncHandler(async (req, res) => {
     })
   });
 });
+
 export const reviewUserApproval = asyncHandler(async (req, res) => {
   res.success({
     message: 'User approval updated',
@@ -101,17 +115,7 @@ export const reviewUserApproval = asyncHandler(async (req, res) => {
     })
   });
 });
-export const upsertRole = asyncHandler(async (req, res) => {
-  res.success({
-    message: 'Role profile saved',
-    data: await upsertRoleProfileAdmin({
-      id: req.validated.params.id,
-      payload: req.validated.body,
-      actor: req.user,
-      req
-    })
-  });
-});
+
 export const banUser = asyncHandler(async (req, res) => {
   res.success({
     message: 'User banned',
@@ -124,6 +128,7 @@ export const banUser = asyncHandler(async (req, res) => {
     })
   });
 });
+
 export const unbanUser = asyncHandler(async (req, res) => {
   res.success({
     message: 'User unbanned',
@@ -137,7 +142,30 @@ export const unbanUser = asyncHandler(async (req, res) => {
   });
 });
 
-export const plans = asyncHandler(async (req, res) => respondList(res, 'Plans loaded', listPlansAdmin(req.validated.query)));
+// ─── ROLES ───────────────────────────────────────────────────────────────────
+
+export const roles = asyncHandler(async (req, res) =>
+  respondList(res, 'Role profiles loaded', listRoleProfilesAdmin(req.validated.query))
+);
+
+export const upsertRole = asyncHandler(async (req, res) => {
+  res.success({
+    message: 'Role profile saved',
+    data: await upsertRoleProfileAdmin({
+      id: req.validated.params.id,
+      payload: req.validated.body,
+      actor: req.user,
+      req
+    })
+  });
+});
+
+// ─── PLANS ───────────────────────────────────────────────────────────────────
+
+export const plans = asyncHandler(async (req, res) =>
+  respondList(res, 'Plans loaded', listPlansAdmin(req.validated.query))
+);
+
 export const upsertPlan = asyncHandler(async (req, res) => {
   res.success({
     message: 'Plan saved',
@@ -150,10 +178,26 @@ export const upsertPlan = asyncHandler(async (req, res) => {
   });
 });
 
-export const payments = asyncHandler(async (req, res) => respondList(res, 'Payments loaded', listPaymentsAdmin(req.validated.query)));
+// BUG 4 FIX: deletePlan missing tha — ab add ho gaya
+export const deletePlan = asyncHandler(async (req, res) => {
+  await deletePlanAdmin({
+    id: req.validated.params.id,
+    actor: req.user,
+    req
+  });
+  res.success({ message: 'Plan deleted' });
+});
+
+// ─── PAYMENTS & SUBSCRIPTIONS ────────────────────────────────────────────────
+
+export const payments = asyncHandler(async (req, res) =>
+  respondList(res, 'Payments loaded', listPaymentsAdmin(req.validated.query))
+);
+
 export const subscriptions = asyncHandler(async (req, res) =>
   respondList(res, 'Subscriptions loaded', listSubscriptionsAdmin(req.validated.query))
 );
+
 export const upsertSubscription = asyncHandler(async (req, res) => {
   res.success({
     message: 'Subscription saved',
@@ -165,9 +209,13 @@ export const upsertSubscription = asyncHandler(async (req, res) => {
     })
   });
 });
+
+// ─── PROVIDERS ───────────────────────────────────────────────────────────────
+
 export const providers = asyncHandler(async (req, res) =>
   respondList(res, 'Providers loaded', listProvidersAdmin(req.validated.query))
 );
+
 export const upsertProvider = asyncHandler(async (req, res) => {
   res.success({
     message: 'Provider saved',
@@ -179,9 +227,13 @@ export const upsertProvider = asyncHandler(async (req, res) => {
     })
   });
 });
+
+// ─── DATASETS ────────────────────────────────────────────────────────────────
+
 export const datasets = asyncHandler(async (req, res) =>
   respondList(res, 'Datasets loaded', listDatasetsAdmin(req.validated.query))
 );
+
 export const upsertDataset = asyncHandler(async (req, res) => {
   res.success({
     message: 'Dataset saved',
@@ -193,9 +245,23 @@ export const upsertDataset = asyncHandler(async (req, res) => {
     })
   });
 });
+
+// BUG 4 FIX: deleteDataset missing tha — ab add ho gaya
+export const deleteDataset = asyncHandler(async (req, res) => {
+  await deleteDatasetAdmin({
+    id: req.validated.params.id,
+    actor: req.user,
+    req
+  });
+  res.success({ message: 'Dataset deleted' });
+});
+
+// ─── COUPONS ─────────────────────────────────────────────────────────────────
+
 export const coupons = asyncHandler(async (req, res) =>
   respondList(res, 'Coupons loaded', listCouponsAdmin(req.validated.query))
 );
+
 export const upsertCoupon = asyncHandler(async (req, res) => {
   res.success({
     message: 'Coupon saved',
@@ -207,23 +273,13 @@ export const upsertCoupon = asyncHandler(async (req, res) => {
     })
   });
 });
+
+// ─── API KEYS ────────────────────────────────────────────────────────────────
+
 export const apiKeys = asyncHandler(async (req, res) =>
   respondList(res, 'API keys loaded', listApiKeysAdmin(req.validated.query))
 );
-export const tools = asyncHandler(async (req, res) =>
-  respondList(res, 'Tools loaded', listToolsAdmin(req.validated.query))
-);
-export const upsertTool = asyncHandler(async (req, res) => {
-  res.success({
-    message: 'Tool saved',
-    data: await upsertToolAdmin({
-      id: req.validated.params.id,
-      payload: req.validated.body,
-      actor: req.user,
-      req
-    })
-  });
-});
+
 export const createApiKey = asyncHandler(async (req, res) => {
   res.success({
     statusCode: 201,
@@ -235,6 +291,7 @@ export const createApiKey = asyncHandler(async (req, res) => {
     })
   });
 });
+
 export const updateApiKey = asyncHandler(async (req, res) => {
   res.success({
     message: 'API key updated',
@@ -246,9 +303,51 @@ export const updateApiKey = asyncHandler(async (req, res) => {
     })
   });
 });
+
+// BUG 4 FIX: deleteApiKey missing tha — ab add ho gaya
+export const deleteApiKey = asyncHandler(async (req, res) => {
+  await deleteApiKeyAdmin({
+    id: req.validated.params.id,
+    actor: req.user,
+    req
+  });
+  res.success({ message: 'API key deleted' });
+});
+
+// ─── TOOLS ───────────────────────────────────────────────────────────────────
+
+export const tools = asyncHandler(async (req, res) =>
+  respondList(res, 'Tools loaded', listToolsAdmin(req.validated.query))
+);
+
+export const upsertTool = asyncHandler(async (req, res) => {
+  res.success({
+    message: 'Tool saved',
+    data: await upsertToolAdmin({
+      id: req.validated.params.id,
+      payload: req.validated.body,
+      actor: req.user,
+      req
+    })
+  });
+});
+
+// BUG 4 FIX: deleteTool missing tha — ab add ho gaya
+export const deleteTool = asyncHandler(async (req, res) => {
+  await deleteToolAdmin({
+    id: req.validated.params.id,
+    actor: req.user,
+    req
+  });
+  res.success({ message: 'Tool deleted' });
+});
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+
 export const settings = asyncHandler(async (req, res) =>
   respondList(res, 'Settings loaded', listSettingsAdmin(req.validated.query))
 );
+
 export const upsertSetting = asyncHandler(async (req, res) => {
   res.success({
     message: 'Setting saved',
@@ -260,9 +359,13 @@ export const upsertSetting = asyncHandler(async (req, res) => {
     })
   });
 });
+
+// ─── FEATURE TOGGLES ─────────────────────────────────────────────────────────
+
 export const featureToggles = asyncHandler(async (req, res) =>
   respondList(res, 'Feature toggles loaded', listFeatureTogglesAdmin(req.validated.query))
 );
+
 export const upsertFeatureToggle = asyncHandler(async (req, res) => {
   res.success({
     message: 'Feature toggle saved',
@@ -274,9 +377,13 @@ export const upsertFeatureToggle = asyncHandler(async (req, res) => {
     })
   });
 });
+
+// ─── CONTENT ─────────────────────────────────────────────────────────────────
+
 export const content = asyncHandler(async (req, res) =>
   respondList(res, 'Homepage content loaded', listContentAdmin(req.validated.query))
 );
+
 export const upsertContent = asyncHandler(async (req, res) => {
   res.success({
     message: 'Homepage content saved',
@@ -288,12 +395,19 @@ export const upsertContent = asyncHandler(async (req, res) => {
     })
   });
 });
+
+// ─── SEARCH LOGS ─────────────────────────────────────────────────────────────
+
 export const searchLogs = asyncHandler(async (req, res) =>
   respondList(res, 'Search logs loaded', listSearchLogsAdmin(req.validated.query))
 );
+
+// ─── TICKETS ─────────────────────────────────────────────────────────────────
+
 export const tickets = asyncHandler(async (req, res) =>
   respondList(res, 'Tickets loaded', listTicketsAdmin(req.validated.query))
 );
+
 export const updateTicket = asyncHandler(async (req, res) => {
   res.success({
     message: 'Ticket updated',
@@ -305,12 +419,17 @@ export const updateTicket = asyncHandler(async (req, res) => {
     })
   });
 });
+
+// ─── THREATS ─────────────────────────────────────────────────────────────────
+
 export const threatEvents = asyncHandler(async (req, res) =>
   respondList(res, 'Threat events loaded', listThreatEventsAdmin(req.validated.query))
 );
+
 export const threatAlerts = asyncHandler(async (req, res) =>
   respondList(res, 'Threat alerts loaded', listThreatAlertsAdmin(req.validated.query))
 );
+
 export const upsertThreatAlert = asyncHandler(async (req, res) => {
   res.success({
     message: 'Threat alert saved',
