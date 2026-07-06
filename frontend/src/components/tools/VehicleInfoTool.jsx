@@ -11,6 +11,7 @@ import { useHistory } from '../../context/HistoryContext';
 import useClipboard from '../../hooks/useClipboard';
 import { trackToolUsage } from '../../utils/analytics';
 import { exportToJSON, exportToCSV, formatForExport } from '../../utils/export';
+import vehicleInfoService from '../../services/tools/vehicleInfoService';
 
 const VehicleInfoTool = ({ onClose, onConsume }) => {
   const toast = useToast();
@@ -93,93 +94,31 @@ const VehicleInfoTool = ({ onClose, onConsume }) => {
       setSearchProgress(prev => Math.min(prev + 3, 95));
     }, 80);
 
-    setTimeout(() => {
+   try {
+      const response = await vehicleInfoService.lookup(vehicleNumber);
       clearInterval(progressInterval);
       setSearchProgress(100);
-
-      const resultData = {
-        vehicleNumber: vehicleNumber.toUpperCase(),
-        registration: {
-          registrationNumber: vehicleNumber.toUpperCase(),
-          registrationDate: '2021-03-15',
-          registrationValidity: '2036-03-14',
-          registrationAuthority: 'RTO Mumbai Central',
-          registrationState: 'Maharashtra',
-          vehicleClass: 'LMV - Light Motor Vehicle',
-          vehicleCategory: 'Private',
-          registrationType: 'New Registration',
-        },
-        vehicle: {
-          make: 'Honda',
-          model: 'City',
-          variant: 'ZX CVT Petrol',
-          bodyType: 'Sedan',
-          color: 'Platinum White Pearl',
-          fuelType: 'Petrol',
-          engineNumber: 'L15Z6-XXXXXX',
-          chassisNumber: 'MAKXXXXXXXX',
-          engineCapacity: '1498 CC',
-          seatingCapacity: 5,
-          cylinderCount: 4,
-          manufacturingYear: 2021,
-          unladenWeight: '1089 KG',
-          grossWeight: '1559 KG',
-        },
-        owner: {
-          ownerName: 'REDACTED',
-          fatherName: 'REDACTED',
-          ownershipType: 'Individual',
-          ownerSerialNumber: 1,
-          presentAddress: 'REDACTED, Mumbai, Maharashtra - 400XXX',
-          permanentAddress: 'REDACTED',
-          financerName: null,
-          insuranceCompany: 'ICICI Lombard General Insurance',
-          insurancePolicyNumber: 'REDACTED',
-          insuranceValidity: '2025-03-14',
-        },
-        fitness: {
-          fitnessValid: true,
-          fitnessValidUpto: '2036-03-14',
-          pucValid: true,
-          pucValidUpto: '2025-06-20',
-          pucNumber: 'PUC-XXXXX',
-          nationalPermit: false,
-          permitType: 'N/A',
-        },
-        tax: {
-          taxPaid: true,
-          taxValidUpto: '2025-12-31',
-          roadTaxAmount: '₹12,500',
-          lastTaxPaidDate: '2024-12-15',
-        },
-        status: {
-          vehicleStatus: 'Active',
-          blacklisted: false,
-          hypothecated: false,
-          noc: false,
-          challanPending: 2,
-          challanAmount: '₹2,500',
-        },
-        history: [
-          { date: '2024-01-05', event: 'Insurance Renewed', details: 'Policy renewed for 1 year' },
-          { date: '2023-12-15', event: 'Tax Paid', details: 'Road tax paid for 2024' },
-          { date: '2023-06-20', event: 'PUC Certificate', details: 'Pollution certificate renewed' },
-          { date: '2021-03-15', event: 'Registration', details: 'New vehicle registered' },
-        ],
-      };
-
-      setResults(resultData);
-      addToHistory({
-        tool: 'Vehicle Info',
-        query: vehicleNumber,
-        timestamp: new Date().toISOString(),
-        results: resultData,
-      });
+      if (response?.data) {
+        setResults(response.data);
+        addToHistory({
+          tool: 'Vehicle Info',
+          query: vehicleNumber,
+          timestamp: new Date().toISOString(),
+          results: response.data
+        });
+        setIsSearching(false);
+        toast.success('Vehicle information retrieved');
+      } else {
+        setIsSearching(false);
+        toast.error('No data found for this vehicle number');
+      }
+    } catch (error) {
+      clearInterval(progressInterval);
+      setSearchProgress(0);
       setIsSearching(false);
-      toast.success('Vehicle information retrieved');
-    }, 3000);
-  };
-
+      toast.error(error?.response?.data?.message || error.message || 'Vehicle lookup failed');
+    }
+  }
   const tabs = [
     { id: 'registration', label: 'Registration', icon: FileText },
     { id: 'vehicle', label: 'Vehicle Details', icon: Car },

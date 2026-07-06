@@ -231,7 +231,32 @@ const buildBuiltInResponse = async ({ category, action, query, body, files, enti
       ? basicPhoneAnalysis(query)
       : basicIpAnalysis(query);
   }
-
+if (category === 'vehicle') {
+    const regNo = String(query || '').trim().toUpperCase().replace(/[\s-]/g, '');
+    const pattern = /^[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{1,4}$/;
+    if (!pattern.test(regNo)) {
+      return {
+        error: 'Invalid vehicle registration number format',
+        hint: 'Expected format: MH01AB1234 or DL1CAB1234'
+      };
+    }
+    const stateCodes = {
+      MH: 'Maharashtra', DL: 'Delhi', KA: 'Karnataka', TN: 'Tamil Nadu',
+      UP: 'Uttar Pradesh', RJ: 'Rajasthan', GJ: 'Gujarat', WB: 'West Bengal',
+      MP: 'Madhya Pradesh', AP: 'Andhra Pradesh', HR: 'Haryana', PB: 'Punjab',
+      BR: 'Bihar', OR: 'Odisha', KL: 'Kerala', AS: 'Assam', UK: 'Uttarakhand',
+      HP: 'Himachal Pradesh', JK: 'Jammu & Kashmir', CG: 'Chhattisgarh',
+      JH: 'Jharkhand', GA: 'Goa', TS: 'Telangana', CH: 'Chandigarh'
+    };
+    const stateCode = regNo.slice(0, 2);
+    return {
+      registrationNumber: regNo,
+      stateCode,
+      state: stateCodes[stateCode] || 'Unknown',
+      note: 'Connect a vehicle data provider in Admin > Providers for full RTO lookup.',
+      providerRequired: true
+    };
+  }
   return null;
 };
 
